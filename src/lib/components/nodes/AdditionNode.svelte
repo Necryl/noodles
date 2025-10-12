@@ -15,6 +15,13 @@
 		result: number;
 	};
 
+	export const nodeIO = () => {
+		return {
+			inputs: 2,
+			outputs: 1
+		};
+	};
+
 	// Props and SvelteFlow hooks
 	let { id, data }: NodeProps<Node<NodeData>> = $props();
 	const { updateNodeData } = useSvelteFlow();

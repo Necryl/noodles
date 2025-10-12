@@ -2,6 +2,13 @@
 	import { Position, type NodeProps, Handle } from '@xyflow/svelte';
 
 	let { data }: NodeProps = $props();
+
+	export const nodeIO = () => {
+		return {
+			inputs: 1,
+			outputs: 0
+		};
+	};
 </script>
 
 <div class="value-node node">

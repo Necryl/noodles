@@ -3,6 +3,13 @@
 
 	let { id, data }: NodeProps = $props();
 	let { updateNodeData } = useSvelteFlow();
+
+	export const nodeIO = () => {
+		return {
+			inputs: 0,
+			outputs: 1
+		};
+	};
 </script>
 
 <div class="value-node node">

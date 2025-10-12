@@ -9,15 +9,11 @@
 
 /* Global glassmorphism styling for all Svelte Flow nodes */
 .svelte-flow__node {
-	--custom-node-gap: 0.75rem;
 	background: rgba(255, 255, 255, 0.05);
 	backdrop-filter: blur(8px);
 	-webkit-backdrop-filter: blur(8px);
 	border: 1px solid rgba(255, 255, 255, 0.2);
 	border-radius: 0.5rem;
-	--gap-multipler: 1.6;
-	padding: calc(var(--custom-node-gap) * var(--gap-multipler))
-		calc(var(--custom-node-gap) * var(--gap-multipler));
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 	color: var(--color-text-1);
 }
@@ -30,30 +26,42 @@
 .svelte-flow__handle {
 	border: 1px solid rgb(141, 141, 141);
 	background: rgba(124, 6, 94, 0.685);
-	/* aspect-ratio: 1 / 1; */
-	/* height: 0.65rem; */
 	border-radius: 50%;
 }
 
+.node {
+	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	min-width: 10rem;
+}
+
+.node .node-name {
+	color: rgb(179, 219, 255);
+	padding-bottom: 0.75rem;
+	padding-left: 0.25rem;
+	font-size: 1.125rem;
+}
+
+.node .field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
 /* Input styling inside nodes for better contrast */
-.svelte-flow__node .input {
+.node .input {
 	background: rgba(255, 255, 255, 0.2);
 	border: 1px solid rgba(255, 255, 255, 0.3);
 	border-radius: 0.25rem;
 	color: var(--color-text-1);
 }
 
-.svelte-flow__node .input:hover {
+.node .input:hover {
 	border-color: rgba(255, 255, 255, 0.603);
 }
-.svelte-flow__node .input:focus {
+.node .input:focus {
 	border-color: var(--color-primary-500);
 	box-shadow: 0 0 0 3px rgba(var(--color-primary-500-rgb), 0.1);
-}
-
-.svelte-flow__node > * > * > * {
-	margin-top: var(--custom-node-gap);
-}
-.svelte-flow__node > * > * > *:first-child {
-	margin-top: 0;
 }

@@ -4,6 +4,9 @@
 	import type { Node, Edge, ColorMode } from '@xyflow/svelte';
 
 	import ValueNode from '$lib/components/nodes/ValueNode.svelte';
+	import AdditionNode from '$lib/components/nodes/AdditionNode.svelte';
+	import OutputNode from '$lib/components/nodes/OutputNode.svelte';
+
 	import AddMenu from '$lib/components/AddMenu.svelte';
 	import { openMenu, closeMenu, menuX, menuY, getNextID } from '$lib/stores/add-menu';
 	import { lastMouseX, lastMouseY } from '$lib/stores/store';
@@ -11,7 +14,7 @@
 	// Define a custom node type that includes possible data properties
 	type AppNode = Node<{ value?: string; label?: string }>;
 
-	const nodeTypes = { valueNode: ValueNode };
+	const nodeTypes = { valueNode: ValueNode, additionNode: AdditionNode, outputNode: OutputNode };
 
 	export const svelteFlowInstance = useSvelteFlow();
 
@@ -26,15 +29,14 @@
 		{
 			id: '2',
 			position: { x: 400, y: 100 },
-			data: { label: 'World' }
+			type: 'outputNode',
+			data: { value: 0 }
 		}
 	];
 	let initialEdges = [{ id: 'e1-2', source: '1', target: '2' }];
 
 	let nodes = $state.raw<Node[]>(initialNodes);
 	let edges = $state.raw<Edge[]>(initialEdges);
-
-
 
 	onMount(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -66,11 +68,19 @@
 		// choose sensible defaults per node type
 		const defaultData: Record<string, any> = {
 			valueNode: { value: '' },
+			additionNode: { a: 0, b: 0, result: 0 },
+			outputNode: { value: 'No input connected' },
 			numberNode: { value: '0' },
 			stringNode: { value: '' }
 		};
 		const data = { ...(defaultData[nodeId] ?? { value: '' }) };
-		const newNode: Node = { id, type: nodeId, position: { x: flowPos.x, y: flowPos.y }, data, origin: [0.5, 0.5] };
+		const newNode: Node = {
+			id,
+			type: nodeId,
+			position: { x: flowPos.x, y: flowPos.y },
+			data,
+			origin: [0.5, 0.5]
+		};
 		nodes = [...nodes, newNode];
 	}
 	let colorMode: ColorMode = $state('system');

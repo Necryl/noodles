@@ -5,11 +5,12 @@
 	let { updateNodeData } = useSvelteFlow();
 </script>
 
-<div class="value-node">
+<div class="value-node node">
+	<h6 class="node-name">Value</h6>
 	<div class="field">
-		<label for="text" class="label">Value</label>
+		<!-- <label for="value-input" class="label">Value</label> -->
 		<input
-			type="text"
+			id="value-input"
 			value={data.value}
 			oninput={(evt) => {
 				const inputEl = evt.currentTarget as HTMLInputElement;

@@ -5,10 +5,7 @@
 
 	const nodeList = {
 		valueNode: 'Value',
-		primitives: {
-			numberNode: 'Number',
-			stringNode: 'String'
-		}
+		additionNode: 'Addition'
 	};
 
 	function addNode(nodeId: string) {

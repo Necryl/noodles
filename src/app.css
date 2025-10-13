@@ -12,8 +12,10 @@
 	background: rgba(255, 255, 255, 0.05);
 	backdrop-filter: blur(8px);
 	-webkit-backdrop-filter: blur(8px);
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	border-radius: 0.5rem;
+	--border-color: rgba(255, 255, 255, 0.2);
+	border: 1px solid var(--border-color);
+	--border-radius: 0.5rem;
+	border-radius: var(--border-radius);
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 	color: var(--color-text-1);
 }
@@ -30,7 +32,7 @@
 }
 
 .node {
-	padding: 1rem;
+	--node-padding: 1rem;
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
@@ -39,15 +41,29 @@
 
 .node .node-name {
 	color: rgb(179, 219, 255);
-	padding-bottom: 0.75rem;
-	padding-left: 0.25rem;
+	padding-top: 0.3rem;
+	padding-bottom: 0.3rem;
+	padding-left: calc(var(--node-padding) + 0.3rem);
 	font-size: 1.125rem;
+	border-bottom: 1px solid var(--border-color);
+	background-color: rgba(40, 16, 42, 0.5);
+	border-radius: var(--border-radius) var(--border-radius) 0rem 0rem;
 }
 
 .node .field {
 	display: flex;
 	flex-direction: column;
 	gap: 0.25rem;
+	position: relative;
+}
+
+.node .field:last-child {
+	padding-bottom: var(--node-padding);
+}
+
+.node>*:not(.handle) {
+	padding-left: var(--node-padding);
+	padding-right: var(--node-padding);
 }
 
 /* Input styling inside nodes for better contrast */
@@ -61,7 +77,12 @@
 .node .input:hover {
 	border-color: rgba(255, 255, 255, 0.603);
 }
+
 .node .input:focus {
 	border-color: var(--color-primary-500);
 	box-shadow: 0 0 0 3px rgba(var(--color-primary-500-rgb), 0.1);
+}
+
+.node hr {
+	color: var(--border-color);
 }

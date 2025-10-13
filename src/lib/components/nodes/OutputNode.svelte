@@ -13,8 +13,8 @@
 
 <div class="value-node node">
 	<h6 class="node-name">Output</h6>
+	<Handle type="target" class="handle" position={Position.Left} id="value-input" />
 	<div class="field">
 		{data.value ?? 'No input connected'}
 	</div>
-	<Handle type="target" position={Position.Left} id="value-input" />
 </div>

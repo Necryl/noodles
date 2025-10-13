@@ -51,11 +51,11 @@
 </script>
 
 <div class="addition-node node">
-	<Handle type="target" position={Position.Left} id="a" style="top: 30px;" />
-	<Handle type="target" position={Position.Left} id="b" style="top: 82px;" />
 	<h6 class="node-name">Addition</h6>
+	<Handle type="source" class="handle" position={Position.Right} id="result-output" />
 
 	<div class="field">
+		<Handle type="target" class="handle" position={Position.Left} id="a" />
 		<label for="input-a" class="label">Input A</label>
 		<input
 			id="input-a"
@@ -68,6 +68,7 @@
 	</div>
 
 	<div class="field">
+		<Handle type="target" class="handle" position={Position.Left} id="b" />
 		<label for="input-b" class="label">Input B</label>
 		<input
 			id="input-b"
@@ -79,17 +80,11 @@
 		/>
 	</div>
 
-	<hr />
-
 	<div class="field">
+		<hr />
 		<label for="result">Result</label>
 		<div id="result" class="result">
 			{sum}
 		</div>
 	</div>
-
-	<Handle type="source" position={Position.Right} id="result-output" />
 </div>
-
-<style>
-</style>

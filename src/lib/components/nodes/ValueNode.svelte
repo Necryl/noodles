@@ -3,17 +3,11 @@
 
 	let { id, data }: NodeProps = $props();
 	let { updateNodeData } = useSvelteFlow();
-
-	export const nodeIO = () => {
-		return {
-			inputs: 0,
-			outputs: 1
-		};
-	};
 </script>
 
 <div class="value-node node">
 	<h6 class="node-name">Value</h6>
+	<Handle type="source" class="handle" position={Position.Right} id="value-output" />
 	<div class="field">
 		<!-- <label for="value-input" class="label">Value</label> -->
 		<input
@@ -26,5 +20,4 @@
 			class="nodrag input"
 		/>
 	</div>
-	<Handle type="source" position={Position.Right} id="value-output" />
 </div>

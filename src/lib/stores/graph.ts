@@ -1,7 +1,50 @@
-const nodeTypes = {
+export type NodeType = keyof typeof nodeTypes;
+
+export interface ValueNodeData {
+	value: unknown;
+}
+
+export type NodeData = ValueNodeData;
+
+interface BaseNode {
+	id: string;
+	evaluated: boolean;
+	inputs: { id: string; outputIndex: number }[][];
+	outputs: { id: string; inputIndex: number }[][];
+}
+
+export interface ValueNode extends BaseNode {
+	type: 'valueNode';
+	data: ValueNodeData;
+}
+
+export interface AdditionNode extends BaseNode {
+	type: 'additionNode';
+	data?: undefined;
+}
+
+export interface OutputNode extends BaseNode {
+	type: 'outputNode';
+	data?: undefined;
+}
+
+export type Node = ValueNode | AdditionNode | OutputNode;
+
+export interface EdgeSource {
+	id: string;
+	outputIndex: number;
+}
+
+export interface EdgeTarget {
+	id: string;
+	inputIndex: number;
+}
+
+export const nodeTypes = {
 	valueNode: {
 		io: { inputs: [], outputs: [{ name: 'value', type: 'any', maxConnections: Infinity }] },
-		logic: (inputs: any = [], data: any) => data.value
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		logic: (inputs: never[] = [], data: ValueNodeData) => data.value
 	},
 	additionNode: {
 		io: {
@@ -11,37 +54,50 @@ const nodeTypes = {
 			],
 			outputs: [{ name: 'sum', type: 'number', maxConnections: Infinity }]
 		},
-		logic: (inputs: any = [], data: any) => inputs.flat().reduce((a, b) => a + b, 0)
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		logic: (inputs: number[][] = [], data: undefined) =>
+			inputs.flat().reduce((a: number, b: number) => a + b, 0)
 	},
 	outputNode: {
 		io: { inputs: [{ name: 'input', type: 'any', maxConnections: 1 }], outputs: [] },
-		logic: (inputs: any = [], data: any) => inputs[0]
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		logic: (inputs: unknown[] = [], data: undefined) => inputs[0]
 	}
 };
 
-const graphStructure = new Map();
-const valueCache = new Map();
+const graphStructure = new Map<string, Node>();
+const valueCache = new Map<string, unknown>();
 
-const addNode = (type, id, data?) => {
-	if (!nodeTypes[type]) {
-		throw new Error(`Node type "${type}" is not defined.`);
-	}
+export const addNode = (type: NodeType, id: string, data?: NodeData) => {
 	const io = nodeTypes[type].io;
-	const newNode = {
+
+	const baseNode: BaseNode = {
 		id,
-		type,
-		data: data ? data : undefined,
 		evaluated: false,
 		inputs: io.inputs.length > 0 ? Array(io.inputs.length).map(() => []) : [],
 		outputs: io.outputs.length > 0 ? Array(io.outputs.length).map(() => []) : []
 	};
+
+	let newNode: Node;
+
+	switch (type) {
+		case 'valueNode':
+			newNode = { ...baseNode, type, data: data as ValueNodeData };
+			break;
+		case 'additionNode':
+			newNode = { ...baseNode, type };
+			break;
+		case 'outputNode':
+			newNode = { ...baseNode, type };
+			break;
+	}
 
 	graphStructure.set(id, newNode);
 	markDirty(id);
 	return newNode;
 };
 
-const removeNode = (id) => {
+export const removeNode = (id: string) => {
 	const node = graphStructure.get(id);
 	if (!node) {
 		throw new Error(`Node with ID "${id}" not found.`);
@@ -74,16 +130,18 @@ const removeNode = (id) => {
 	graphStructure.delete(id);
 };
 
-const updateNodeData = (id, newData) => {
+export const updateNodeData = (id: string, newData: NodeData) => {
 	const node = graphStructure.get(id);
 	if (!node) {
 		throw new Error(`Node with ID "${id}" not found.`);
 	}
-	node.data = newData;
-	markDirty(id);
+	if (node.type === 'valueNode') {
+		node.data = newData as ValueNodeData;
+		markDirty(id);
+	}
 };
 
-const addEdge = (source, target) => {
+export const addEdge = (source: EdgeSource, target: EdgeTarget) => {
 	const sourceNode = graphStructure.get(source.id);
 	const targetNode = graphStructure.get(target.id);
 	if (!sourceNode || !targetNode) {
@@ -140,7 +198,7 @@ const addEdge = (source, target) => {
 	targetNode.inputs[target.inputIndex].push(source);
 };
 
-const removeEdge = (source, target) => {
+export const removeEdge = (source: EdgeSource, target: EdgeTarget) => {
 	const sourceNode = graphStructure.get(source.id);
 	const targetNode = graphStructure.get(target.id);
 	if (!sourceNode || !targetNode) {
@@ -155,7 +213,7 @@ const removeEdge = (source, target) => {
 	markDirty(target.id);
 };
 
-const markDirty = (id, visited = new Set()) => {
+const markDirty = (id: string, visited = new Set<string>()) => {
 	// Prevent infinite loops in cyclical graphs
 	if (visited.has(id)) {
 		return;
@@ -177,7 +235,7 @@ const markDirty = (id, visited = new Set()) => {
 	}
 };
 
-const evaluateNode = (id) => {
+export const evaluateNode = (id: string): unknown => {
 	if (valueCache.has(id)) {
 		return valueCache.get(id);
 	}
@@ -191,7 +249,10 @@ const evaluateNode = (id) => {
 		return inputConnections.map((source) => evaluateNode(source.id));
 	});
 
-	const outputValue = nodeTypes[node.type].logic(inputValues, node.data);
+	const outputValue = (
+		nodeTypes[node.type].logic as (inputs: unknown[], data: NodeData | undefined) => unknown
+	)(inputValues as unknown[], node.data);
+
 	valueCache.set(id, outputValue);
 	node.evaluated = true;
 	return outputValue;

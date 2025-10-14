@@ -88,9 +88,10 @@ export const createNode = (type: NodeDef, id: string, data?: NodeData): GNode =>
 		case 'outputNode':
 			newNode = { ...baseNode, type };
 			break;
-		default:
+		default: {
 			const _exhaustive: never = type;
 			throw new Error(`Unhandled node type: ${_exhaustive}`);
+		}
 	}
 
 	return newNode;

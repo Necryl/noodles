@@ -37,6 +37,7 @@
 	flex-direction: column;
 	gap: 0.75rem;
 	min-width: 10rem;
+	min-height: 5rem;
 }
 
 .node .node-name {
@@ -61,7 +62,7 @@
 	padding-bottom: var(--node-padding);
 }
 
-.node>*:not(.handle) {
+.node > *:not(.handle) {
 	padding-left: var(--node-padding);
 	padding-right: var(--node-padding);
 }

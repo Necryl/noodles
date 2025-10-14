@@ -3,37 +3,54 @@
 	import { onMount } from 'svelte';
 	import type { Node, Edge, ColorMode } from '@xyflow/svelte';
 
-	import ValueNode from '$lib/components/nodes/ValueNode.svelte';
-	import AdditionNode from '$lib/components/nodes/AdditionNode.svelte';
-	import OutputNode from '$lib/components/nodes/OutputNode.svelte';
+	import NodeComponent from '$lib/components/Node.svelte';
 
 	import AddMenu from '$lib/components/AddMenu.svelte';
-	import { openMenu, closeMenu, menuX, menuY, getNextID } from '$lib/stores/add-menu';
-	import { lastMouseX, lastMouseY } from '$lib/stores/store';
+	import { openMenu, closeMenu, menuX, menuY } from '$lib/stores/add-menu';
+	import { lastMouseX, lastMouseY } from '$lib/stores/misc';
+	import { getNextID, graphStore } from '$lib/stores/graph';
+	import { nodeDefs, type NodeDef, type GNode } from '$lib/graph/nodeDefs';
 
 	// Define a custom node type that includes possible data properties
 	type AppNode = Node<{ value?: string; label?: string }>;
 
-	const nodeTypes = { valueNode: ValueNode, additionNode: AdditionNode, outputNode: OutputNode };
-
 	export const svelteFlowInstance = useSvelteFlow();
 
+	export const nodeTypes = { node: NodeComponent };
+
+	const engine = graphStore;
+
 	// Apply the custom type to the nodes array
-	let initialNodes = [
-		{
-			id: '1',
-			type: 'valueNode',
-			position: { x: 0, y: 0 },
-			data: { value: '0' }
-		},
-		{
-			id: '2',
-			position: { x: 400, y: 100 },
-			type: 'outputNode',
-			data: { value: 0 }
-		}
-	];
-	let initialEdges = [{ id: 'e1-2', source: '1', target: '2' }];
+	const { initialNodes, initialEdges } = (() => {
+		const node1 = graphStore.addNode('valueNode', getNextID());
+		const node2 = graphStore.addNode('outputNode', getNextID());
+		console.log(JSON.stringify(node1));
+		return {
+			initialNodes: [
+				{
+					id: node1.id,
+					type: 'node',
+					position: { x: 0, y: 0 },
+					data: node1 as unknown as Record<string, unknown>
+				},
+				{
+					id: node2.id,
+					type: 'node',
+					position: { x: 400, y: 100 },
+					data: node2 as unknown as Record<string, unknown>
+				}
+			],
+			initialEdges: [
+				{
+					id: 'e1-2',
+					source: node1.id,
+					target: node2.id,
+					sourceHandle: nodeDefs[node1.type].io.outputs[0].name,
+					targetHandle: nodeDefs[node2.type].io.inputs[0].name
+				} as Edge
+			]
+		};
+	})();
 
 	let nodes = $state.raw<Node[]>(initialNodes);
 	let edges = $state.raw<Edge[]>(initialEdges);
@@ -60,25 +77,16 @@
 		};
 	});
 
-	function addNode(nodeId: string) {
+	function addNode(nodeType: string) {
 		const id = getNextID();
 		const flowPos = svelteFlowInstance.screenToFlowPosition({ x: $menuX, y: $menuY });
-		console.log('flowPos', flowPos);
 		if (!flowPos) return;
-		// choose sensible defaults per node type
-		const defaultData: Record<string, any> = {
-			valueNode: { value: '' },
-			additionNode: { a: 0, b: 0, result: 0 },
-			outputNode: { value: 'No input connected' },
-			numberNode: { value: '0' },
-			stringNode: { value: '' }
-		};
-		const data = { ...(defaultData[nodeId] ?? { value: '' }) };
+		const dataNode: GNode = engine.addNode(nodeType as NodeDef, id);
 		const newNode: Node = {
 			id,
-			type: nodeId,
+			type: 'node',
 			position: { x: flowPos.x, y: flowPos.y },
-			data,
+			data: dataNode as unknown as Record<string, unknown>,
 			origin: [0.5, 0.5]
 		};
 		nodes = [...nodes, newNode];

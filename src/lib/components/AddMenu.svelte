@@ -1,15 +1,22 @@
 <script lang="ts">
+	import type { NodeDef } from '$lib/graph/nodeDefs';
+	import { nodeDefs } from '$lib/graph/nodeDefs';
 	import { menuVisible, menuX, menuY, closeMenu } from '$lib/stores/add-menu';
 	import { fade } from 'svelte/transition';
-	export let onAdd: (nodeId: string) => void;
+	export let onAdd: (nodeName: string) => void;
 
-	const nodeList = {
-		valueNode: 'Value',
-		additionNode: 'Addition'
-	};
+	type NodeListEntry = string | { [key: string]: string };
+	type NodeList = { [key: string]: NodeListEntry };
 
-	function addNode(nodeId: string) {
-		onAdd(nodeId);
+	const nodeList: NodeList = (() => {
+		const result: NodeList = {};
+		(Object.keys(nodeDefs) as (keyof typeof nodeDefs)[]).forEach((key) => {
+			result[key] = nodeDefs[key].name;
+		});
+		return result;
+	})();
+	function addNode(nodeName: string) {
+		onAdd(nodeName);
 		closeMenu();
 	}
 </script>

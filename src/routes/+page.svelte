@@ -22,9 +22,10 @@
 
 	// Apply the custom type to the nodes array
 	const { initialNodes, initialEdges } = (() => {
-		const node1 = graphStore.addNode('valueNode', getNextID());
+		const node1 = graphStore.addNode('valueNode', getNextID(), [
+			nodeDefs.valueNode.data[0].defaultValue
+		] as unknown as GNode['data']);
 		const node2 = graphStore.addNode('outputNode', getNextID());
-		console.log(JSON.stringify(node1));
 		return {
 			initialNodes: [
 				{
@@ -45,8 +46,8 @@
 					id: 'e1-2',
 					source: node1.id,
 					target: node2.id,
-					sourceHandle: nodeDefs[node1.type].io.outputs[0].name,
-					targetHandle: nodeDefs[node2.type].io.inputs[0].name
+					sourceHandle: `output-0`,
+					targetHandle: `input-0`
 				} as Edge
 			]
 		};

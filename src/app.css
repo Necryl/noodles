@@ -40,15 +40,33 @@
 	min-height: 5rem;
 }
 
-.node .node-name {
+.node .node-title {
 	color: rgb(179, 219, 255);
 	padding-top: 0.3rem;
 	padding-bottom: 0.3rem;
-	padding-left: calc(var(--node-padding) + 0.3rem);
+	padding-left: 0.3rem;
 	font-size: 1.125rem;
 	border-bottom: 1px solid var(--border-color);
 	background-color: rgba(40, 16, 42, 0.5);
 	border-radius: var(--border-radius) var(--border-radius) 0rem 0rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.node .calculate-node-btn {
+	background-color: rgb(57, 49, 102);
+	margin: 0%;
+	padding: 0%;
+	aspect-ratio: 1/1;
+	height: 1.5em;
+	display: flex;
+	text-align: center;
+	border-radius: 50%;
+	transition: 300ms;
+}
+.node .calculate-node-btn:active {
+	outline: red solid 1px;
 }
 
 .node .field {
@@ -62,7 +80,7 @@
 	padding-bottom: var(--node-padding);
 }
 
-.node > *:not(.handle) {
+.node > *:not(.handle, .node-title) {
 	padding-left: var(--node-padding);
 	padding-right: var(--node-padding);
 }

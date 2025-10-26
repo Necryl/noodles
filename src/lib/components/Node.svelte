@@ -9,6 +9,8 @@
 	const nodeDef = nodeDefs[gNode.type];
 	const edges = useEdges();
 
+	const nodeValue = $graphStore.cache.get(id);
+
 	// --- 2. REACTIVE STATE ---
 
 	const isInputConnected = $derived(() => {
@@ -36,7 +38,13 @@
 </script>
 
 <div class="node">
-	<h6 class="node-name">{nodeDef.name}</h6>
+	<div class="node-title">
+		<button
+			class="calculate-node-btn preset-glass-primary btn"
+			onclick={() => graphStore.evaluateNode(gNode.id)}>C</button
+		>
+		<h6 class="node-name">{nodeDef.name}</h6>
+	</div>
 	{#if nodeDef.io.outputs.length === 1}
 		<Handle type="source" class="handle" position={Position.Right} id={`output-0`} />
 	{:else}
@@ -68,7 +76,7 @@
 					{#if pluginDef.defaultValue && typeof pluginDef.defaultValue === 'object' && 'type' in pluginDef.defaultValue && pluginDef.defaultValue.type === 'error' && 'value' in pluginDef.defaultValue}
 						<div class="result error">{(pluginDef.defaultValue as { value: string }).value}</div>
 					{:else}
-						<div class="result">{pluginDef.defaultValue}</div>
+						<div class="result">{$graphStore.cache.get(id) ?? pluginDef.defaultValue}</div>
 					{/if}
 				{/if}
 			{/if}
@@ -85,7 +93,7 @@
 							id={`${id}-${dataDef.name}`}
 							class="nodrag input"
 							type="text"
-							value={gNode.data[i]?.value}
+							value={(gNode.data[i] as any)?.value ?? gNode.data[i]}
 							oninput={(e) => updateNodeValue(i, e.currentTarget.value)}
 						/>
 					{/if}

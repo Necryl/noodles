@@ -27,19 +27,42 @@ export const nodeDefs = {
 		name: 'Addition',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'number', ui: { type: 'none' }, maxConnections: Infinity },
-				{ name: 'b', type: 'number', ui: { type: 'none' }, maxConnections: Infinity }
+				{ name: 'a', type: 'any', ui: { type: 'none' }, maxConnections: Infinity },
+				{ name: 'b', type: 'any', ui: { type: 'none' }, maxConnections: Infinity }
 			],
-			outputs: [{ name: 'sum', type: 'number', maxConnections: Infinity }]
+			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
 		},
 		data: [
 			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
 			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
 		],
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		logic: (inputs: number[][] = [], data: []) =>
-			inputs.flat().reduce((a: number, b: number) => a + b, 0),
-		defaultData: (): [] => []
+		logic: (
+			inputs: (number | string | boolean)[][] = [],
+			data: (number | string | boolean)[] = []
+		) => {
+			const inputA = inputs[0];
+			const inputB = inputs[1];
+			const dataA = data[0] || null;
+			const dataB = data[1] || null;
+
+			return [...(inputA.length > 0 ? inputA : [dataA]), ...(inputB.length > 0 ? inputB : [dataB])]
+				.flat()
+				.reduce((acc, val) => {
+					if (val === null) {
+						return acc;
+					} else if (acc === null) {
+						return val;
+					} else if (typeof acc === 'boolean' || typeof val === 'boolean') {
+						return Number(acc) + Number(val);
+					}
+					if (typeof acc === 'number' && typeof val === 'number') {
+						return acc + val;
+					} else {
+						return String(acc) + String(val);
+					}
+				});
+		},
+		defaultData: (): (number | string | boolean)[] => []
 	},
 	outputNode: {
 		name: 'Output',

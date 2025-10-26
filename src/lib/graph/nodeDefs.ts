@@ -18,14 +18,7 @@ export const nodeDefs = {
 	valueNode: {
 		name: 'Value',
 		io: { inputs: [], outputs: [{ name: 'value', type: 'string', maxConnections: Infinity }] },
-		data: [
-			{
-				name: 'type',
-				type: 'string',
-				ui: { type: 'select', options: ['boolean', 'number', 'string'] }
-			},
-			{ name: 'value', type: 'string', ui: { type: 'input' }, defaultValue: '' }
-		],
+		data: [{ name: 'value', type: 'string', ui: { type: 'input' }, defaultValue: '' }],
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		logic: (inputs: never[] = [], data: [{ value: string }]) => data[0].value,
 		defaultData: (): [{ value: string }] => [{ value: '' }]
@@ -78,6 +71,13 @@ export type GNode = {
 		data: NodeLogicData<K>;
 	};
 }[NodeDef];
+
+export type PluginDef = {
+	type: 'plugin';
+	inputIndex: number;
+	ui: { type: 'input' | 'display'; options?: readonly string[] };
+	defaultValue: unknown;
+};
 
 export type NodeData = GNode['data'];
 

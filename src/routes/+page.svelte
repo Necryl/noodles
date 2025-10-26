@@ -26,6 +26,7 @@
 			nodeDefs.valueNode.data[0].defaultValue
 		] as unknown as GNode['data']);
 		const node2 = graphStore.addNode('outputNode', getNextID());
+		graphStore.addEdge({ id: node1.id, outputIndex: 0 }, { id: node2.id, inputIndex: 0 });
 		return {
 			initialNodes: [
 				{

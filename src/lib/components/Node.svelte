@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { graphStore } from '$lib/stores/graph';
-	import { nodeDefs, type GNode } from '$lib/graph/nodeDefs';
+	import { nodeDefs, type GNode, type PluginDef } from '$lib/graph/nodeDefs';
 	import { Position, type NodeProps, Handle, useEdges, type Edge } from '@xyflow/svelte';
 
 	// --- 1. PROPS & DEFINITIONS ---
@@ -52,21 +52,21 @@
 	{#each nodeDef.io.inputs as input, i}
 		{@const pluginDef = nodeDef.data?.find(
 			(d) => 'type' in d && d.type === 'plugin' && 'inputIndex' in d && d.inputIndex === i
-		)}
+		) as PluginDef | undefined}
 		<div class="field">
 			<Handle type="target" class="handle" position={Position.Left} id={`input-${i}`} />
 			<label for={`input-${i}`}>{input.name}</label>
 
 			{#if pluginDef}
 				{#if !(isInputConnected().get(i) ?? false)}
-					{#if pluginDef.ui === 'input'}
+					{#if pluginDef.ui.type === 'input'}
 						<input type="number" class="nodrag input" value={pluginDef.defaultValue} />
 					{/if}
 				{/if}
 
-				{#if pluginDef.ui === 'display'}
-					{#if pluginDef.defaultValue && typeof pluginDef.defaultValue === 'object' && 'type' in pluginDef.defaultValue && pluginDef.defaultValue.type === 'error'}
-						<div class="result error">{pluginDef.defaultValue.value}</div>
+				{#if 'defaultValue' in pluginDef && pluginDef.ui.type === 'display'}
+					{#if pluginDef.defaultValue && typeof pluginDef.defaultValue === 'object' && 'type' in pluginDef.defaultValue && pluginDef.defaultValue.type === 'error' && 'value' in pluginDef.defaultValue}
+						<div class="result error">{(pluginDef.defaultValue as { value: string }).value}</div>
 					{:else}
 						<div class="result">{pluginDef.defaultValue}</div>
 					{/if}
@@ -80,7 +80,7 @@
 			{#if 'name' in dataDef && dataDef.type === 'string' && gNode.data}
 				<div class="field">
 					<label for={`${id}-${dataDef.name}`}>{dataDef.name}</label>
-					{#if dataDef.ui === 'input'}
+					{#if dataDef.ui.type === 'input'}
 						<input
 							id={`${id}-${dataDef.name}`}
 							class="nodrag input"

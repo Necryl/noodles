@@ -100,6 +100,7 @@ function createGraphStore(): GraphStore {
 			update((state) => {
 				const newGraph = graphLogic.updateNodeData(state.graph, id, newData);
 				const newCache = graphLogic.markDirty(newGraph, state.cache, id);
+				console.log('Updated node data, new cache:', newGraph, newCache);
 				return { graph: newGraph, cache: newCache };
 			});
 		},

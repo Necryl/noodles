@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { SvelteFlow, MiniMap, Controls, useSvelteFlow, Background, Panel } from '@xyflow/svelte';
 	import { onMount } from 'svelte';
-	import type { Node, Edge, ColorMode } from '@xyflow/svelte';
+	import type { Node, Edge, ColorMode, OnDelete, OnConnect, NodeTypes } from '@xyflow/svelte';
 
 	import NodeComponent from '$lib/components/Node.svelte';
 
@@ -9,7 +9,13 @@
 	import { openMenu, closeMenu, menuX, menuY } from '$lib/stores/add-menu';
 	import { lastMouseX, lastMouseY } from '$lib/stores/misc';
 	import { getNextID, graphStore } from '$lib/stores/graph';
-	import { nodeDefs, type NodeDef, type GNode } from '$lib/graph/nodeDefs';
+	import {
+		nodeDefs,
+		type NodeDef,
+		type GNode,
+		type EdgeSource,
+		type EdgeTarget
+	} from '$lib/graph/nodeDefs';
 
 	// Define a custom node type that includes possible data properties
 	type AppNode = Node<{ value?: string; label?: string }>;
@@ -93,6 +99,39 @@
 		};
 		nodes = [...nodes, newNode];
 	}
+
+	const deleteHandler: OnDelete = ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
+		console.log('deleting nodes:', nodes);
+		console.log('deleting edges:', edges);
+		edges.forEach((edge) => {
+			const source: EdgeSource = {
+				id: edge.source,
+				outputIndex: Number(edge.sourceHandle?.at(-1))
+			};
+			const target: EdgeTarget = {
+				id: edge.target,
+				inputIndex: Number(edge.targetHandle?.at(-1))
+			};
+			engine.removeEdge(source, target);
+		});
+		nodes.forEach((node) => {
+			engine.removeNode(node.id);
+		});
+	};
+
+	const connectionHandler: OnConnect = (connection) => {
+		console.log('connecting:', connection);
+		const source: EdgeSource = {
+			id: connection.source,
+			outputIndex: Number(connection.sourceHandle?.at(-1))
+		};
+		const target: EdgeTarget = {
+			id: connection.target,
+			inputIndex: Number(connection.targetHandle?.at(-1))
+		};
+		engine.addEdge(source, target);
+	};
+
 	let colorMode: ColorMode = $state('system');
 </script>
 
@@ -112,6 +151,8 @@
 			}
 		}}
 		onpaneclick={closeMenu}
+		onconnect={connectionHandler}
+		ondelete={deleteHandler}
 	>
 		<Panel position="top-left">
 			<h1>Noodles</h1>

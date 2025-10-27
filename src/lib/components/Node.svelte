@@ -125,3 +125,28 @@
 		{/each}
 	{/if} -->
 </div>
+
+<style>
+	.input-value {
+		background-color: rgb(36, 37, 51);
+		color: rgb(150, 152, 168);
+		border: 1px solid rgb(79, 84, 120);
+		border-radius: 4px;
+		min-height: 2.2rem;
+		display: flex;
+		align-items: center;
+		padding: 0.5rem;
+		overflow: auto;
+	}
+
+	.result {
+		background-color: rgb(13, 16, 38);
+		color: rgb(47, 190, 212);
+		border: 1px solid rgb(23, 63, 145);
+		border-radius: 4px;
+		min-height: 4rem;
+		display: flex;
+		padding: 0.5rem;
+		overflow: auto;
+	}
+</style>

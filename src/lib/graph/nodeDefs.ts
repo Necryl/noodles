@@ -62,8 +62,8 @@ export const nodeDefs = {
 			// console.log('addition node datas:', datas);
 			const inputA = inputs[0];
 			const inputB = inputs[1];
-			const dataA = datas[0];
-			const dataB = datas[1];
+			const dataA = Number(datas[0]) || datas[0];
+			const dataB = Number(datas[1]) || datas[1];
 
 			function sumValues(
 				acc: number | string | boolean | null,

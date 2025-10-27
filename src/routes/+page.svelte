@@ -40,7 +40,10 @@
 			nodeDefs.stringNode.data[0].defaultValue
 		] as unknown as GNode['data']);
 		const node2 = graphStore.addNode('outputNode', getNextID());
-		graphStore.addEdge({ id: node1.id, outputIndex: 0 }, { id: node2.id, inputIndex: 0 });
+		graphStore.addEdge(
+			{ id: node1.id, outputIndex: 0, type: 'string' },
+			{ id: node2.id, inputIndex: 0, type: 'any' }
+		);
 		return {
 			initialNodes: [
 				{
@@ -114,12 +117,19 @@
 		edges.forEach((edge) => {
 			const source: EdgeSource = {
 				id: edge.source,
-				outputIndex: Number(edge.sourceHandle?.at(-1))
+				outputIndex: Number(edge.sourceHandle?.at(-1)),
+				type: ''
 			};
+			source.type =
+				nodeDefs[$graphStore.graph.get(source.id).type].io.outputs[source.outputIndex].type;
 			const target: EdgeTarget = {
 				id: edge.target,
-				inputIndex: Number(edge.targetHandle?.at(-1))
+				inputIndex: Number(edge.targetHandle?.at(-1)),
+				type: ''
 			};
+			target.type =
+				nodeDefs[$graphStore.graph.get(target.id).type].io.inputs[target.inputIndex].type;
+
 			engine.removeEdge(source, target);
 		});
 		nodes.forEach((node) => {
@@ -131,12 +141,19 @@
 		// console.log('connecting:', connection);
 		const source: EdgeSource = {
 			id: connection.source,
-			outputIndex: Number(connection.sourceHandle?.at(-1))
+			outputIndex: Number(connection.sourceHandle?.at(-1)),
+			type: ''
 		};
+		source.type =
+			nodeDefs[$graphStore.graph.get(source.id).type].io.outputs[source.outputIndex].type;
+
 		const target: EdgeTarget = {
 			id: connection.target,
-			inputIndex: Number(connection.targetHandle?.at(-1))
+			inputIndex: Number(connection.targetHandle?.at(-1)),
+			type: ''
 		};
+		target.type = nodeDefs[$graphStore.graph.get(target.id).type].io.inputs[target.inputIndex].type;
+		console.log('connecting source:', source, 'target:', target);
 		engine.addEdge(source, target);
 	};
 
@@ -155,9 +172,13 @@
 		const sourceMax = nodeDefs[source.type].io.outputs[sourceSocket.index].maxConnections;
 		const targetMax = nodeDefs[target.type].io.inputs[targetSocket.index].maxConnections;
 
+		const sourceType = nodeDefs[source.type].io.outputs[sourceSocket.index].type;
+		const targetType = nodeDefs[target.type].io.inputs[targetSocket.index].type;
+
 		if (
 			source.outputs[sourceSocket.index].length < sourceMax &&
-			target.inputs[targetSocket.index].length < targetMax
+			target.inputs[targetSocket.index].length < targetMax &&
+			(sourceType === targetType || sourceType === 'any' || targetType === 'any')
 		) {
 			return true;
 		} else {

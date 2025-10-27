@@ -1,11 +1,13 @@
 export interface InputConnection {
 	id: string;
 	outputIndex: number;
+	type: string;
 }
 
 export interface OutputConnection {
 	id: string;
 	inputIndex: number;
+	type: string;
 }
 
 export interface BaseNode {
@@ -92,6 +94,46 @@ export const nodeDefs = {
 		},
 		defaultData: (): (number | string | boolean)[] => [0, 0]
 	},
+	subractionNode: {
+		name: 'Subtraction',
+		io: {
+			inputs: [
+				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: Infinity },
+				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: Infinity }
+			],
+			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
+		},
+		data: [
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
+		],
+		logic: (inputs: number[][] = [], datas: number[] = []) => {
+			// console.log('subtraction node inputs:', inputs);
+			// console.log('subtraction node datas:', datas);
+			const inputA = inputs[0];
+			const inputB = inputs[1];
+			const dataA = datas[0];
+			const dataB = datas[1];
+
+			function subtractValues(acc: number | null, val: number | null) {
+				if (val === null) {
+					return acc;
+				} else if (acc === null) {
+					return val;
+				}
+				return acc - val;
+			}
+
+			const inputValues = [
+				inputA.length > 0 ? inputA : [dataA],
+				inputB.length > 0 ? inputB : [dataB]
+			].map((inputSocket) => inputSocket.reduce(subtractValues, null));
+			const outputValue = subtractValues(inputValues[0], inputValues[1]);
+			return { inputs: inputValues, outputs: [outputValue] };
+		},
+		defaultData: (): number[] => [0, 0]
+	},
+
 	outputNode: {
 		name: 'Output',
 		io: {
@@ -140,11 +182,13 @@ export type NodeData = GNode['data'];
 export interface EdgeSource {
 	id: string;
 	outputIndex: number;
+	type: string;
 }
 
 export interface EdgeTarget {
 	id: string;
 	inputIndex: number;
+	type: string;
 }
 
 export const createNode = <T extends NodeDef>(

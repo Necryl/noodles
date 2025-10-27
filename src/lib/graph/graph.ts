@@ -91,7 +91,8 @@ export const addEdge = (graph: Map<string, GNode>, source: EdgeSource, target: E
 		sourceOutputDef &&
 		targetInputDef &&
 		sourceOutputDef.type !== targetInputDef.type &&
-		targetInputDef.type !== 'any'
+		targetInputDef.type !== 'any' &&
+		sourceOutputDef.type !== 'any'
 	) {
 		throw new Error(
 			`Type mismatch: Cannot connect output type "${sourceOutputDef.type}" to input type "${targetInputDef.type}".`

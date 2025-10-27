@@ -3,6 +3,7 @@
 	import { nodeDefs, type GNode, type PluginDef, type NodeData } from '$lib/graph/nodeDefs';
 	import { Position, type NodeProps, Handle, useEdges, type Edge } from '@xyflow/svelte';
 	import InputElem from './InputElem.svelte';
+	import NodeError from './NodeError.svelte';
 
 	// --- 1. PROPS & DEFINITIONS ---
 	let { id, data }: NodeProps = $props();
@@ -27,6 +28,18 @@
 			}
 		}
 		return connectedMap;
+	});
+
+	const checkInputTypes = $derived(() => {
+		return liveNode()?.inputs.map((socket, index) => {
+			const socketType = nodeDef.io.inputs[index].type;
+			return socket.reduce((verdict, source) => {
+				if (source.type !== socketType && source.type !== 'any' && socketType !== 'any') {
+					return false;
+				}
+				return verdict;
+			}, true);
+		});
 	});
 
 	// --- 3. ACTIONS ---
@@ -92,7 +105,15 @@
 						/>
 					{/if}
 				{:else if input.ui.type === 'show'}
-					<div class="input-value">{(nodeValue() as GNode)?.inputs?.[i] ?? ' '}</div>
+					{@const nValue = (nodeValue() as GNode)?.inputs?.[i] ?? pluginDef.defaultValue}
+					{#if (typeof nValue === input.type || input.type === 'any') && checkInputTypes()[i]}
+						<div class="input-value">{(nodeValue() as GNode)?.inputs?.[i] ?? ' '}</div>
+					{:else}
+						<NodeError
+							details={`[Node ID:${id}][Index:${i}]`}
+							message={`Input type is invalid, nvalue[${nValue}] ${typeof nValue} \u2192 ${input.type}`}
+						/>
+					{/if}
 				{/if}
 
 				{#if 'defaultValue' in pluginDef && pluginDef.ui.type === 'display'}

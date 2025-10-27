@@ -44,11 +44,11 @@ export const nodeDefs = {
 		defaultData: (): (string | number | boolean)[] => ['']
 	},
 	additionNode: {
-		name: 'Addition',
+		name: 'Add',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'any', ui: { type: 'show' }, maxConnections: Infinity },
-				{ name: 'b', type: 'any', ui: { type: 'show' }, maxConnections: Infinity }
+				{ name: 'a', type: 'any', ui: { type: 'show' }, maxConnections: 1 },
+				{ name: 'b', type: 'any', ui: { type: 'show' }, maxConnections: 1 }
 			],
 			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
 		},
@@ -95,11 +95,11 @@ export const nodeDefs = {
 		defaultData: (): (number | string | boolean)[] => [0, 0]
 	},
 	subractionNode: {
-		name: 'Subtraction',
+		name: 'Subtract',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: Infinity },
-				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: Infinity }
+				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: 1 },
+				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: 1 }
 			],
 			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
 		},
@@ -122,6 +122,84 @@ export const nodeDefs = {
 					return val;
 				}
 				return acc - val;
+			}
+
+			const inputValues = [
+				inputA.length > 0 ? inputA : [dataA],
+				inputB.length > 0 ? inputB : [dataB]
+			].map((inputSocket) => inputSocket.reduce(subtractValues, null));
+			const outputValue = subtractValues(inputValues[0], inputValues[1]);
+			return { inputs: inputValues, outputs: [outputValue] };
+		},
+		defaultData: (): number[] => [0, 0]
+	},
+	multiplicationNode: {
+		name: 'Multiply',
+		io: {
+			inputs: [
+				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: 1 },
+				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: 1 }
+			],
+			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
+		},
+		data: [
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
+		],
+		logic: (inputs: number[][] = [], datas: number[] = []) => {
+			// console.log('subtraction node inputs:', inputs);
+			// console.log('subtraction node datas:', datas);
+			const inputA = inputs[0];
+			const inputB = inputs[1];
+			const dataA = datas[0];
+			const dataB = datas[1];
+
+			function subtractValues(acc: number | null, val: number | null) {
+				if (val === null) {
+					return acc;
+				} else if (acc === null) {
+					return val;
+				}
+				return acc * val;
+			}
+
+			const inputValues = [
+				inputA.length > 0 ? inputA : [dataA],
+				inputB.length > 0 ? inputB : [dataB]
+			].map((inputSocket) => inputSocket.reduce(subtractValues, null));
+			const outputValue = subtractValues(inputValues[0], inputValues[1]);
+			return { inputs: inputValues, outputs: [outputValue] };
+		},
+		defaultData: (): number[] => [0, 0]
+	},
+	divisionNode: {
+		name: 'Divide',
+		io: {
+			inputs: [
+				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: 1 },
+				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: 1 }
+			],
+			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
+		},
+		data: [
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
+		],
+		logic: (inputs: number[][] = [], datas: number[] = []) => {
+			// console.log('subtraction node inputs:', inputs);
+			// console.log('subtraction node datas:', datas);
+			const inputA = inputs[0];
+			const inputB = inputs[1];
+			const dataA = datas[0];
+			const dataB = datas[1];
+
+			function subtractValues(acc: number | null, val: number | null) {
+				if (val === null) {
+					return acc;
+				} else if (acc === null) {
+					return val;
+				}
+				return acc / val;
 			}
 
 			const inputValues = [

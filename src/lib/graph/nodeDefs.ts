@@ -15,20 +15,38 @@ export interface BaseNode {
 }
 
 export const nodeDefs = {
-	valueNode: {
-		name: 'Value',
-		io: { inputs: [], outputs: [{ name: 'value', type: 'string', maxConnections: Infinity }] },
-		data: [{ name: 'value', type: 'string', ui: { type: 'input' }, defaultValue: '' }],
+	numberNode: {
+		name: 'Number',
+		io: {
+			inputs: [{ name: 'value', type: 'number', ui: { type: 'none' }, maxConnections: 0 }],
+			outputs: [{ name: 'value', type: 'number', maxConnections: Infinity }]
+		},
+		data: [{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 }],
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		logic: (inputs: never[] = [], data: [{ value: string }]) => data[0].value,
-		defaultData: (): [{ value: string }] => [{ value: '' }]
+		logic: (inputs: never[] = [], datas: (string | number | boolean)[]) => {
+			return { inputs: [], outputs: [datas[0]] };
+		},
+		defaultData: (): (string | number | boolean)[] => [0]
+	},
+	stringNode: {
+		name: 'String',
+		io: {
+			inputs: [{ name: 'value', type: 'string', ui: { type: 'none' }, maxConnections: 0 }],
+			outputs: [{ name: 'value', type: 'string', maxConnections: Infinity }]
+		},
+		data: [{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: '' }],
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		logic: (inputs: never[] = [], datas: (string | number | boolean)[]) => {
+			return { inputs: [], outputs: [datas[0]] };
+		},
+		defaultData: (): (string | number | boolean)[] => ['']
 	},
 	additionNode: {
 		name: 'Addition',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'any', ui: { type: 'none' }, maxConnections: Infinity },
-				{ name: 'b', type: 'any', ui: { type: 'none' }, maxConnections: Infinity }
+				{ name: 'a', type: 'any', ui: { type: 'show' }, maxConnections: Infinity },
+				{ name: 'b', type: 'any', ui: { type: 'show' }, maxConnections: Infinity }
 			],
 			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
 		},
@@ -38,31 +56,41 @@ export const nodeDefs = {
 		],
 		logic: (
 			inputs: (number | string | boolean)[][] = [],
-			data: (number | string | boolean)[] = []
+			datas: (number | string | boolean)[] = []
 		) => {
+			// console.log('addition node inputs:', inputs);
+			// console.log('addition node datas:', datas);
 			const inputA = inputs[0];
 			const inputB = inputs[1];
-			const dataA = data[0] || null;
-			const dataB = data[1] || null;
+			const dataA = datas[0];
+			const dataB = datas[1];
 
-			return [...(inputA.length > 0 ? inputA : [dataA]), ...(inputB.length > 0 ? inputB : [dataB])]
-				.flat()
-				.reduce((acc, val) => {
-					if (val === null) {
-						return acc;
-					} else if (acc === null) {
-						return val;
-					} else if (typeof acc === 'boolean' || typeof val === 'boolean') {
-						return Number(acc) + Number(val);
-					}
-					if (typeof acc === 'number' && typeof val === 'number') {
-						return acc + val;
-					} else {
-						return String(acc) + String(val);
-					}
-				});
+			function sumValues(
+				acc: number | string | boolean | null,
+				val: number | string | boolean | null
+			) {
+				if (val === null) {
+					return acc;
+				} else if (acc === null) {
+					return val;
+				} else if (typeof acc === 'boolean' || typeof val === 'boolean') {
+					return Number(acc) + Number(val);
+				}
+				if (typeof acc === 'number' && typeof val === 'number') {
+					return acc + val;
+				} else {
+					return String(acc) + String(val);
+				}
+			}
+
+			const inputValues = [
+				inputA.length > 0 ? inputA : [dataA],
+				inputB.length > 0 ? inputB : [dataB]
+			].map((inputSocket) => inputSocket.reduce(sumValues, null));
+			const outputValue = sumValues(inputValues[0], inputValues[1]);
+			return { inputs: inputValues, outputs: [outputValue] };
 		},
-		defaultData: (): (number | string | boolean)[] => []
+		defaultData: (): (number | string | boolean)[] => [0, 0]
 	},
 	outputNode: {
 		name: 'Output',
@@ -74,12 +102,17 @@ export const nodeDefs = {
 			{
 				type: 'plugin',
 				inputIndex: 0,
-				ui: { type: 'display', options: ['error'] },
-				defaultValue: 'No input'
+				ui: { type: 'display' },
+				defaultValue: ' '
 			}
 		],
+
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		logic: (inputs: unknown[] = [], data: []) => inputs[0],
+		logic: (inputs: unknown[] = [], datas: []) => {
+			// console.log('output node inputs:', inputs);
+			// console.log('output node datas:', datas);
+			return { inputs: [...inputs], outputs: inputs[0] };
+		},
 		defaultData: (): [] => []
 	}
 } as const;

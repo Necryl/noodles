@@ -18,7 +18,7 @@ export const removeNode = (graph: Map<string, GNode>, id: string) => {
 
 	const dirtyNodes = node.outputs.flat().map((target) => target.id);
 
-	let neighbourNodes = new Set<string>();
+	const neighbourNodes = new Set<string>();
 	node.inputs.flat().forEach((source) => neighbourNodes.add(source.id));
 	node.outputs.flat().forEach((target) => neighbourNodes.add(target.id));
 	neighbourNodes.forEach((neighbourID) => {
@@ -166,23 +166,26 @@ export const evaluateNode = (
 	}
 
 	const node = graph.get(id);
+	// console.log('Evaluating node, raw graph:', id, node);
 	if (!node) {
 		throw new Error(`Node with ID "${id}" not found.`);
 	}
 
 	let newCache = new Map(cache);
-	const inputValues = node.inputs.map((inputConnections) => {
-		return inputConnections.map((source) => {
+	const inputValues = node.inputs.map((inputSocket) => {
+		return inputSocket.map((source) => {
 			const result = evaluateNode(graph, newCache, source.id);
 			newCache = result.newCache;
-			return result.value;
+			return (result.value as { inputs: never[]; outputs: unknown[] }).outputs[source.outputIndex];
 		});
 	});
 
-	const outputValue = (
+	// console.log('Evaluating node, input values:', inputValues);
+
+	const nodeValue = (
 		nodeDefs[node.type].logic as (inputs: unknown[], data: NodeData | undefined) => unknown
 	)(inputValues as unknown[], node.data);
 
-	newCache.set(id, outputValue);
-	return { value: outputValue, newCache: newCache };
+	newCache.set(id, nodeValue);
+	return { value: nodeValue, newCache: newCache };
 };

@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { graphStore } from '$lib/stores/graph';
-	import { nodeDefs, type GNode, type PluginDef } from '$lib/graph/nodeDefs';
+	import { nodeDefs, type GNode, type PluginDef, type NodeData } from '$lib/graph/nodeDefs';
 	import { Position, type NodeProps, Handle, useEdges, type Edge } from '@xyflow/svelte';
+	import InputElem from './InputElem.svelte';
 
 	// --- 1. PROPS & DEFINITIONS ---
 	let { id, data }: NodeProps = $props();
-	const gNode = data as unknown as GNode;
-	const nodeDef = nodeDefs[gNode.type];
+	const initialNode = data as unknown as GNode;
+	const liveNode = $derived(() => $graphStore.graph.get(initialNode.id));
+	const nodeDef = nodeDefs[initialNode.type];
 	const edges = useEdges();
 
-	const nodeValue = $graphStore.cache.get(id);
+	const nodeValue = $derived(() => $graphStore.cache.get(id));
 
 	// --- 2. REACTIVE STATE ---
 
@@ -29,11 +31,20 @@
 
 	// --- 3. ACTIONS ---
 
-	function updateNodeValue(index: number, value: string) {
-		if (gNode.type === 'valueNode') {
-			const newData: [{ value: string }] = [{ value }];
-			graphStore.updateNodeData(gNode.id, newData);
-		}
+	function updateNodeValue(index: number, value: any) {
+		// console.log(`Updating node value for node ${id} at index ${index} to`, value);
+		// console.log('Current node before update:', liveNode());
+		const node = liveNode();
+		if (!node) return;
+
+		const oldData = node.data;
+		let newData: NodeData;
+
+		const newArr = [...(oldData as any[])];
+		newArr[index] = value;
+		newData = newArr;
+
+		graphStore.updateNodeData(node.id, newData as NodeData);
 	}
 </script>
 
@@ -41,7 +52,7 @@
 	<div class="node-title">
 		<button
 			class="calculate-node-btn preset-glass-primary btn"
-			onclick={() => graphStore.evaluateNode(gNode.id)}>C</button
+			onclick={() => graphStore.evaluateNode(initialNode.id)}>C</button
 		>
 		<h6 class="node-name">{nodeDef.name}</h6>
 	</div>
@@ -62,43 +73,55 @@
 			(d) => 'type' in d && d.type === 'plugin' && 'inputIndex' in d && d.inputIndex === i
 		) as PluginDef | undefined}
 		<div class="field">
-			<Handle type="target" class="handle" position={Position.Left} id={`input-${i}`} />
+			{#if input.maxConnections > 0}
+				<Handle type="target" class="handle" position={Position.Left} id={`input-${i}`} />
+			{/if}
 			<label for={`input-${i}`}>{input.name}</label>
 
 			{#if pluginDef}
 				{#if !(isInputConnected().get(i) ?? false)}
 					{#if pluginDef.ui.type === 'input'}
-						<input type="number" class="nodrag input" value={pluginDef.defaultValue} />
+						<InputElem
+							id={`input-${i}`}
+							type={'inputIndex' in pluginDef
+								? nodeDef.io.inputs[pluginDef.inputIndex]?.type
+								: undefined}
+							defaultValue={pluginDef.defaultValue}
+							nodeID={id}
+							setValue={(value: any) => updateNodeValue(i, value)}
+						/>
 					{/if}
+				{:else if input.ui.type === 'show'}
+					<div class="input-value">{(nodeValue() as GNode)?.inputs?.[i] ?? ' '}</div>
 				{/if}
 
 				{#if 'defaultValue' in pluginDef && pluginDef.ui.type === 'display'}
-					{#if pluginDef.defaultValue && typeof pluginDef.defaultValue === 'object' && 'type' in pluginDef.defaultValue && pluginDef.defaultValue.type === 'error' && 'value' in pluginDef.defaultValue}
-						<div class="result error">{(pluginDef.defaultValue as { value: string }).value}</div>
-					{:else}
-						<div class="result">{$graphStore.cache.get(id) ?? pluginDef.defaultValue}</div>
-					{/if}
+					<div class="result">
+						{(nodeValue() as GNode)?.outputs?.[pluginDef.inputIndex] ?? pluginDef.defaultValue}
+					</div>
 				{/if}
 			{/if}
 		</div>
 	{/each}
 
-	{#if nodeDef.data}
+	<!-- {#if nodeDef.data}
 		{#each nodeDef.data as dataDef, i}
-			{#if 'name' in dataDef && dataDef.type === 'string' && gNode.data}
+			{#if 'name' in dataDef && dataDef.type === 'string' && initialNode.data}
 				<div class="field">
 					<label for={`${id}-${dataDef.name}`}>{dataDef.name}</label>
 					{#if dataDef.ui.type === 'input'}
-						<input
+						<InputElem
 							id={`${id}-${dataDef.name}`}
-							class="nodrag input"
-							type="text"
-							value={(gNode.data[i] as any)?.value ?? gNode.data[i]}
-							oninput={(e) => updateNodeValue(i, e.currentTarget.value)}
+							type={'inputIndex' in dataDef
+								? nodeDef.io.inputs[(dataDef as any).inputIndex]?.type
+								: undefined}
+							value={(initialNode.data[i] as any)?.value}
+							nodeID={id}
+							setValue={(value: any) => updateNodeValue(i, value)}
 						/>
 					{/if}
 				</div>
 			{/if}
 		{/each}
-	{/if}
+	{/if} -->
 </div>

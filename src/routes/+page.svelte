@@ -28,8 +28,8 @@
 
 	// Apply the custom type to the nodes array
 	const { initialNodes, initialEdges } = (() => {
-		const node1 = graphStore.addNode('valueNode', getNextID(), [
-			nodeDefs.valueNode.data[0].defaultValue
+		const node1 = graphStore.addNode('stringNode', getNextID(), [
+			nodeDefs.stringNode.data[0].defaultValue
 		] as unknown as GNode['data']);
 		const node2 = graphStore.addNode('outputNode', getNextID());
 		graphStore.addEdge({ id: node1.id, outputIndex: 0 }, { id: node2.id, inputIndex: 0 });
@@ -101,8 +101,8 @@
 	}
 
 	const deleteHandler: OnDelete = ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
-		console.log('deleting nodes:', nodes);
-		console.log('deleting edges:', edges);
+		// console.log('deleting nodes:', nodes);
+		// console.log('deleting edges:', edges);
 		edges.forEach((edge) => {
 			const source: EdgeSource = {
 				id: edge.source,
@@ -120,7 +120,7 @@
 	};
 
 	const connectionHandler: OnConnect = (connection) => {
-		console.log('connecting:', connection);
+		// console.log('connecting:', connection);
 		const source: EdgeSource = {
 			id: connection.source,
 			outputIndex: Number(connection.sourceHandle?.at(-1))

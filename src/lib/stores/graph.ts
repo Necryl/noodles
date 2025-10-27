@@ -139,7 +139,7 @@ function createGraphStore(): GraphStore {
 				const { value, newCache } = graphLogic.evaluateNode(state.graph, state.cache, id);
 				finalValue = value;
 				// We only need to update the cache. The graph structure is unchanged.
-				console.log(`evaluated node id: ${id}, value: ${value}`);
+				console.log(`evaluated node id: ${id}, value: ${JSON.stringify(value)}`);
 				console.log('new cache:', newCache);
 				return { graph: state.graph, cache: newCache };
 			});

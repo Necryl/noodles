@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { SvelteFlow, MiniMap, Controls, useSvelteFlow, Background, Panel } from '@xyflow/svelte';
 	import { onMount } from 'svelte';
-	import type { Node, Edge, ColorMode, OnDelete, OnConnect, NodeTypes } from '@xyflow/svelte';
+	import type {
+		Node,
+		Edge,
+		ColorMode,
+		OnDelete,
+		OnConnect,
+		NodeTypes,
+		IsValidConnection
+	} from '@xyflow/svelte';
 
 	import NodeComponent from '$lib/components/Node.svelte';
 
@@ -132,6 +140,31 @@
 		engine.addEdge(source, target);
 	};
 
+	const checkConnectionValidity: IsValidConnection = (connection) => {
+		const sourceSocket = {
+			id: connection.source,
+			index: Number(connection.sourceHandle.at(-1))
+		};
+		const targetSocket = {
+			id: connection.target,
+			index: Number(connection.targetHandle.at(-1))
+		};
+		const source = $graphStore.graph.get(sourceSocket.id);
+		const target = $graphStore.graph.get(targetSocket.id);
+
+		const sourceMax = nodeDefs[source.type].io.outputs[sourceSocket.index].maxConnections;
+		const targetMax = nodeDefs[target.type].io.inputs[targetSocket.index].maxConnections;
+
+		if (
+			source.outputs[sourceSocket.index].length < sourceMax &&
+			target.inputs[targetSocket.index].length < targetMax
+		) {
+			return true;
+		} else {
+			return false;
+		}
+	};
+
 	let colorMode: ColorMode = $state('system');
 </script>
 
@@ -153,6 +186,7 @@
 		onpaneclick={closeMenu}
 		onconnect={connectionHandler}
 		ondelete={deleteHandler}
+		isValidConnection={checkConnectionValidity}
 	>
 		<Panel position="top-left">
 			<h1>Noodles</h1>

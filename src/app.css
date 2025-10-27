@@ -27,8 +27,12 @@
 /* Handle styling */
 .svelte-flow__handle {
 	border: 1px solid rgb(141, 141, 141);
-	background: rgba(124, 6, 94, 0.685);
+	background: rgb(250, 199, 47);
 	border-radius: 50%;
+	--size: 1em;
+	height: var(--size);
+	width: var(--size);
+	z-index: 1;
 }
 
 .node {
@@ -65,6 +69,7 @@
 	border-radius: 50%;
 	transition: 300ms;
 }
+
 .node .calculate-node-btn:active {
 	outline: red solid 1px;
 }
@@ -80,7 +85,7 @@
 	padding-bottom: var(--node-padding);
 }
 
-.node > *:not(.handle, .node-title) {
+.node>*:not(.handle, .node-title) {
 	padding-left: var(--node-padding);
 	padding-right: var(--node-padding);
 }

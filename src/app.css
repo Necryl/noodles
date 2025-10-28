@@ -19,7 +19,6 @@
 	color: var(--color-text-1);
 }
 
-
 .svelte-flow__node:hover {
 	border-color: rgba(255, 255, 255, 0.712);
 }
@@ -27,12 +26,24 @@
 /* Handle styling */
 .svelte-flow__handle {
 	border: 1px solid rgb(141, 141, 141);
-	background: rgb(250, 199, 47);
+	background: rgb(255, 253, 234);
 	border-radius: 50%;
-	--size: 1em;
+	--size: 0.6em;
 	height: var(--size);
 	width: var(--size);
 	z-index: 1;
+}
+
+.svelte-flow__handle.number {
+	background: rgb(24, 201, 255);
+}
+
+.svelte-flow__handle.string {
+	background: rgb(199, 158, 25);
+}
+
+.svelte-flow__handle.boolean {
+	background: rgb(199, 25, 147);
 }
 
 .node * {
@@ -87,7 +98,7 @@
 	align-items: center;
 }
 
-.node>*:not(.handle, .node-title, .node-status-bar) {
+.node > *:not(.handle, .node-title, .node-status-bar) {
 	padding-left: var(--node-padding);
 	padding-right: var(--node-padding);
 }
@@ -157,5 +168,4 @@
 
 .node.calculated {
 	box-shadow: 0 8px 32px rgba(31, 172, 255, 0.07);
-
 }

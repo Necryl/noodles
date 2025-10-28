@@ -1,6 +1,5 @@
 <script lang="ts">
 	import NodeError from './NodeError.svelte';
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	let { id, type, defaultValue, nodeID, setValue } = $props();
 	// console.log('making InputElem:', { id, type, defaultValue, nodeID, setValue });
 	function ensureType(value: unknown, type: string) {

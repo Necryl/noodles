@@ -93,15 +93,29 @@
 			<h6 class="node-name">{nodeDef.name}</h6>
 		</div>
 		{#if nodeDef.io.outputs.length === 1}
-			<Handle type="source" class="handle" position={Position.Right} id={`output-0`} />
+			<Handle
+				type="source"
+				class={['handle', nodeDef.io.outputs[0].type]}
+				position={Position.Right}
+				id={`output-0`}
+			/>
 		{:else}
-			{@const outputs = nodeDef.io.outputs as readonly { name: string; showName: boolean }[]}
+			{@const outputs = nodeDef.io.outputs as readonly {
+				name: string;
+				type: string;
+				showName: boolean;
+			}[]}
 			{#each outputs as output, i}
 				<div class="field">
 					{#if output.showName}
 						<label for={`output-${i}`}>{output.name}</label>
 					{/if}
-					<Handle type="source" class="handle" position={Position.Right} id={`output-${i}`} />
+					<Handle
+						type="source"
+						class={['handle', output.type]}
+						position={Position.Right}
+						id={`output-${i}`}
+					/>
 				</div>
 			{/each}
 		{/if}
@@ -112,7 +126,12 @@
 			) as PluginDef | undefined}
 			<div class="field">
 				{#if input.maxConnections > 0}
-					<Handle type="target" class="handle" position={Position.Left} id={`input-${i}`} />
+					<Handle
+						type="target"
+						class={['handle', input.type]}
+						position={Position.Left}
+						id={`input-${i}`}
+					/>
 				{/if}
 				{#if input.ui.showName}
 					<label for={`input-${i}`}>{input.name}</label>

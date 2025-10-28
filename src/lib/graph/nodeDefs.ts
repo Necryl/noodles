@@ -16,6 +16,11 @@ export interface BaseNode {
 	outputs: OutputConnection[][];
 }
 
+export interface NodeValueCache {
+	inputs: any[];
+	outputs: any[];
+}
+
 export const nodeDefs = {
 	numberNode: {
 		name: 'Number',
@@ -29,7 +34,7 @@ export const nodeDefs = {
 			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		logic: (inputs: never[] = [], datas: (string | number | boolean)[]) => {
+		logic: (inputs: never[] = [], datas: (string | number | boolean)[]): NodeValueCache => {
 			return { inputs: [], outputs: [datas[0]] };
 		},
 		defaultData: (): (string | number | boolean)[] => [0]
@@ -46,7 +51,7 @@ export const nodeDefs = {
 			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: '' }
 		],
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		logic: (inputs: never[] = [], datas: (string | number | boolean)[]) => {
+		logic: (inputs: never[] = [], datas: (string | number | boolean)[]): NodeValueCache => {
 			return { inputs: [], outputs: [datas[0]] };
 		},
 		defaultData: (): (string | number | boolean)[] => ['']
@@ -67,7 +72,7 @@ export const nodeDefs = {
 		logic: (
 			inputs: (number | string | boolean)[][] = [],
 			datas: (number | string | boolean)[] = []
-		) => {
+		): NodeValueCache => {
 			// console.log('addition node inputs:', inputs);
 			// console.log('addition node datas:', datas);
 			const inputA = inputs[0];
@@ -115,7 +120,7 @@ export const nodeDefs = {
 			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
 			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
-		logic: (inputs: number[][] = [], datas: number[] = []) => {
+		logic: (inputs: number[][] = [], datas: number[] = []): NodeValueCache => {
 			// console.log('subtraction node inputs:', inputs);
 			// console.log('subtraction node datas:', datas);
 			const inputA = inputs[0];
@@ -154,7 +159,7 @@ export const nodeDefs = {
 			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
 			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
-		logic: (inputs: number[][] = [], datas: number[] = []) => {
+		logic: (inputs: number[][] = [], datas: number[] = []): NodeValueCache => {
 			// console.log('subtraction node inputs:', inputs);
 			// console.log('subtraction node datas:', datas);
 			const inputA = inputs[0];
@@ -193,7 +198,7 @@ export const nodeDefs = {
 			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
 			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
-		logic: (inputs: number[][] = [], datas: number[] = []) => {
+		logic: (inputs: number[][] = [], datas: number[] = []): NodeValueCache => {
 			// console.log('subtraction node inputs:', inputs);
 			// console.log('subtraction node datas:', datas);
 			const inputA = inputs[0];
@@ -238,7 +243,7 @@ export const nodeDefs = {
 		],
 
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		logic: (inputs: unknown[] = [], datas: []) => {
+		logic: (inputs: any[] = [], datas: []): NodeValueCache => {
 			// console.log('output node inputs:', inputs);
 			// console.log('output node datas:', datas);
 			return { inputs: [...inputs], outputs: inputs[0] };

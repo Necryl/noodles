@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { graphStore } from '$lib/stores/graph';
-	import { nodeDefs, type GNode, type PluginDef, type NodeData } from '$lib/graph/nodeDefs';
+	import {
+		nodeDefs,
+		type GNode,
+		type PluginDef,
+		type NodeData,
+		type NodeValueCache
+	} from '$lib/graph/nodeDefs';
 	import { Position, type NodeProps, Handle, useEdges, type Edge } from '@xyflow/svelte';
 	import InputElem from './InputElem.svelte';
 	import NodeError from './NodeError.svelte';
@@ -11,6 +17,33 @@
 	const liveNode = $derived(() => $graphStore.graph.get(initialNode.id));
 	const nodeDef = nodeDefs[initialNode.type];
 	const edges = useEdges();
+
+	const status = $derived(() => {
+		console.log('starting status calculation for:', id);
+		let status = { node: 'pending', inputs: [] as boolean[] };
+		const values = nodeValue() as NodeValueCache | undefined;
+		const inputTypes = nodeDef.io.inputs.map((socket) => socket.type);
+		console.log('values:', values);
+		if (
+			!(!values || !values.inputs || (values.inputs.length === 0 && values.outputs.length === 0))
+		) {
+			if (
+				!values.inputs.reduce((verdict: boolean, curr: any, index: number) => {
+					let result =
+						(typeof curr === inputTypes[index] || inputTypes[index] === 'any') && verdict;
+					status.inputs[index] = result;
+					console.log(`STATUS ${id} [Input index: ${index}]: `, result);
+					return result;
+				}, true)
+			) {
+				status.node = 'error';
+			} else if (values !== undefined) {
+				status.node = 'calculated';
+			}
+		}
+		console.log('status calculated for', id, ':', status, '<<');
+		return status;
+	});
 
 	const nodeValue = $derived(() => $graphStore.cache.get(id));
 
@@ -28,18 +61,6 @@
 			}
 		}
 		return connectedMap;
-	});
-
-	const checkInputTypes = $derived(() => {
-		return liveNode()?.inputs.map((socket, index) => {
-			const socketType = nodeDef.io.inputs[index].type;
-			return socket.reduce((verdict, source) => {
-				if (source.type !== socketType && source.type !== 'any' && socketType !== 'any') {
-					return false;
-				}
-				return verdict;
-			}, true);
-		});
 	});
 
 	// --- 3. ACTIONS ---
@@ -61,74 +82,82 @@
 	}
 </script>
 
-<div class="node">
-	<div class="node-title">
-		<button
-			class="calculate-node-btn preset-glass-primary btn"
-			onclick={() => graphStore.evaluateNode(initialNode.id)}>C</button
-		>
-		<h6 class="node-name">{nodeDef.name}</h6>
-	</div>
-	{#if nodeDef.io.outputs.length === 1}
-		<Handle type="source" class="handle" position={Position.Right} id={`output-0`} />
-	{:else}
-		{@const outputs = nodeDef.io.outputs as readonly { name: string; showName: boolean }[]}
-		{#each outputs as output, i}
+{#if true}
+	{@const nStatus = status()}
+	<div class={['node', nStatus.node]}>
+		<div class="node-title">
+			<button
+				class="calculate-node-btn preset-glass-primary btn"
+				onclick={() => graphStore.evaluateNode(initialNode.id)}>C</button
+			>
+			<h6 class="node-name">{nodeDef.name}</h6>
+		</div>
+		{#if nodeDef.io.outputs.length === 1}
+			<Handle type="source" class="handle" position={Position.Right} id={`output-0`} />
+		{:else}
+			{@const outputs = nodeDef.io.outputs as readonly { name: string; showName: boolean }[]}
+			{#each outputs as output, i}
+				<div class="field">
+					{#if output.showName}
+						<label for={`output-${i}`}>{output.name}</label>
+					{/if}
+					<Handle type="source" class="handle" position={Position.Right} id={`output-${i}`} />
+				</div>
+			{/each}
+		{/if}
+
+		{#each nodeDef.io.inputs as input, i}
+			{@const pluginDef = nodeDef.data?.find(
+				(d) => 'type' in d && d.type === 'plugin' && 'inputIndex' in d && d.inputIndex === i
+			) as PluginDef | undefined}
 			<div class="field">
-				{#if output.showName}
-					<label for={`output-${i}`}>{output.name}</label>
+				{#if input.maxConnections > 0}
+					<Handle type="target" class="handle" position={Position.Left} id={`input-${i}`} />
 				{/if}
-				<Handle type="source" class="handle" position={Position.Right} id={`output-${i}`} />
+				{#if input.ui.showName}
+					<label for={`input-${i}`}>{input.name}</label>
+				{/if}
+
+				{#if pluginDef}
+					{#if !(isInputConnected().get(i) ?? false)}
+						{#if pluginDef.ui.type === 'input'}
+							<InputElem
+								id={`input-${i}`}
+								type={'inputIndex' in pluginDef
+									? nodeDef.io.inputs[pluginDef.inputIndex]?.type
+									: undefined}
+								defaultValue={pluginDef.defaultValue}
+								nodeID={id}
+								setValue={(value: any) => updateNodeValue(i, value)}
+							/>
+						{/if}
+					{:else if input.ui.type === 'show'}
+						{@const nValue = (nodeValue() as GNode)?.inputs?.[i]}
+						{#if nStatus.node !== 'error' && nStatus.inputs[i] !== false}
+							<div class="input-value">{nValue ?? ' '}</div>
+						{:else}
+							<NodeError
+								details={`[Node ID:${id}][Index:${i}]`}
+								message={`Input type is invalid, incoming value: ${nValue}\ntypes:\n${typeof nValue} \u2192 ${input.type}`}
+							/>
+						{/if}
+					{/if}
+
+					{#if 'defaultValue' in pluginDef && pluginDef.ui.type === 'display'}
+						<div class="result">
+							{(nodeValue() as GNode)?.outputs?.[pluginDef.inputIndex] ?? pluginDef.defaultValue}
+						</div>
+					{/if}
+				{/if}
 			</div>
 		{/each}
-	{/if}
-
-	{#each nodeDef.io.inputs as input, i}
-		{@const pluginDef = nodeDef.data?.find(
-			(d) => 'type' in d && d.type === 'plugin' && 'inputIndex' in d && d.inputIndex === i
-		) as PluginDef | undefined}
-		<div class="field">
-			{#if input.maxConnections > 0}
-				<Handle type="target" class="handle" position={Position.Left} id={`input-${i}`} />
-			{/if}
-			{#if input.ui.showName}
-				<label for={`input-${i}`}>{input.name}</label>
-			{/if}
-
-			{#if pluginDef}
-				{#if !(isInputConnected().get(i) ?? false)}
-					{#if pluginDef.ui.type === 'input'}
-						<InputElem
-							id={`input-${i}`}
-							type={'inputIndex' in pluginDef
-								? nodeDef.io.inputs[pluginDef.inputIndex]?.type
-								: undefined}
-							defaultValue={pluginDef.defaultValue}
-							nodeID={id}
-							setValue={(value: any) => updateNodeValue(i, value)}
-						/>
-					{/if}
-				{:else if input.ui.type === 'show'}
-					{@const nValue = (nodeValue() as GNode)?.inputs?.[i] ?? pluginDef.defaultValue}
-					{#if (typeof nValue === input.type || input.type === 'any') && checkInputTypes()?.[i]}
-						<div class="input-value">{(nodeValue() as GNode)?.inputs?.[i] ?? ' '}</div>
-					{:else}
-						<NodeError
-							details={`[Node ID:${id}][Index:${i}]`}
-							message={`Input type is invalid, incoming value: ${nValue}\ntypes:\n${typeof nValue} \u2192 ${input.type}`}
-						/>
-					{/if}
-				{/if}
-
-				{#if 'defaultValue' in pluginDef && pluginDef.ui.type === 'display'}
-					<div class="result">
-						{(nodeValue() as GNode)?.outputs?.[pluginDef.inputIndex] ?? pluginDef.defaultValue}
-					</div>
-				{/if}
-			{/if}
+		<div class="node-status-bar">
+			<span class={nStatus.node === 'error' ? 'light-up' : ''}>&#9648; </span>
+			<span class={nStatus.node === 'pending' ? 'light-up' : ''}>&#9648; </span>
+			<span class={nStatus.node === 'calculated' ? 'light-up' : ''}>&#9648; </span>
 		</div>
-	{/each}
-</div>
+	</div>
+{/if}
 
 <style>
 	.input-value {

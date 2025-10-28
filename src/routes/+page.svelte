@@ -7,7 +7,6 @@
 		ColorMode,
 		OnDelete,
 		OnConnect,
-		NodeTypes,
 		IsValidConnection
 	} from '@xyflow/svelte';
 
@@ -159,7 +158,7 @@
 			type: ''
 		};
 		target.type = nodeDefs[targetNode.type].io.inputs[target.inputIndex].type;
-		console.log('connecting source:', source, 'target:', target);
+		// console.log('connecting source:', source, 'target:', target);
 		engine.addEdge(source, target);
 	};
 

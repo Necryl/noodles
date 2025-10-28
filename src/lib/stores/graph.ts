@@ -132,15 +132,15 @@ function createGraphStore(): GraphStore {
 		 * Evaluates a node and updates the cache. Returns the computed value.
 		 */
 		evaluateNode: (id: string): unknown => {
-			console.log(`evaluating node id: ${id}`);
+			// console.log(`evaluating node id: ${id}`);
 			let finalValue: unknown;
 			update((state) => {
 				// This pure function returns both the value and the new cache state.
 				const { value, newCache } = graphLogic.evaluateNode(state.graph, state.cache, id);
 				finalValue = value;
 				// We only need to update the cache. The graph structure is unchanged.
-				console.log(`evaluated node id: ${id}, value: ${JSON.stringify(value)}`);
-				console.log('new cache:', newCache);
+				// console.log(`evaluated node id: ${id}, value: ${JSON.stringify(value)}`);
+				// console.log('new cache:', newCache);
 				return { graph: state.graph, cache: newCache };
 			});
 			return finalValue;

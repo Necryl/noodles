@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { NodeDef } from '$lib/graph/nodeDefs';
 	import { nodeDefs } from '$lib/graph/nodeDefs';
 	import { menuVisible, menuX, menuY, closeMenu } from '$lib/stores/add-menu';
 	import { fade } from 'svelte/transition';

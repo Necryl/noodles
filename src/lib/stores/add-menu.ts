@@ -5,7 +5,7 @@ export const menuX = writable(0);
 export const menuY = writable(0);
 
 export function openMenu(x: number, y: number) {
-	console.log('openMenu', x, y);
+	// console.log('openMenu', x, y);
 	menuX.set(x);
 	menuY.set(y);
 	menuVisible.set(true);

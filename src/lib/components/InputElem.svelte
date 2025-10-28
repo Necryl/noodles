@@ -32,7 +32,7 @@
 		{id}
 		type="number"
 		value={defaultValue}
-		oninput={(e) => setValue(ensureType(e.currentTarget.checked, type))}
+		oninput={(e) => setValue(ensureType(e.currentTarget.value, type))}
 	/>
 {:else if type === 'boolean'}
 	<label class="node-bool-switch">
@@ -47,7 +47,7 @@
 				const newValue = ensureType(e.currentTarget.checked, type);
 				setValue(newValue);
 				booleanValue = newValue as boolean;
-				console.log('setting boolean value to:', newValue);
+				// console.log('setting boolean value to:', newValue);
 			}}
 		/>
 	</label>

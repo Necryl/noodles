@@ -184,20 +184,23 @@ export const nodeDefs = {
 			const dataA = datas[0];
 			const dataB = datas[1];
 
-			function subtractValues(acc: number | null, val: number | null) {
+			// console.log('for multiplying, input values', inputA, inputB, 'and data values', dataA, dataB);
+
+			function multiplicationValues(acc: number | null, val: number | null) {
 				if (val === null) {
 					return acc;
 				} else if (acc === null) {
 					return val;
 				}
+				// console.log('multiplying:', acc, '*', val);
 				return acc * val;
 			}
 
 			const inputValues = [
 				inputA.length > 0 ? inputA : [dataA],
 				inputB.length > 0 ? inputB : [dataB]
-			].map((inputSocket) => inputSocket.reduce(subtractValues, null));
-			const outputValue = subtractValues(inputValues[0], inputValues[1]);
+			].map((inputSocket) => inputSocket.reduce(multiplicationValues, null));
+			const outputValue = multiplicationValues(inputValues[0], inputValues[1]);
 			return { inputs: inputValues, outputs: [outputValue] };
 		},
 		defaultData: (): number[] => [0, 0]

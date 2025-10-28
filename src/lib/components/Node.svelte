@@ -7,7 +7,7 @@
 		type NodeData,
 		type NodeValueCache
 	} from '$lib/graph/nodeDefs';
-	import { Position, type NodeProps, Handle, useEdges, type Edge } from '@xyflow/svelte';
+	import { Position, type NodeProps, Handle, useEdges } from '@xyflow/svelte';
 	import InputElem from './InputElem.svelte';
 	import NodeError from './NodeError.svelte';
 

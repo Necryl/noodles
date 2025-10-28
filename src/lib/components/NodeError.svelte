@@ -1,10 +1,13 @@
 <script>
 	let { message, details } = $props();
 	console.error(`Node Error {${details}}:`, message);
+	message = message.split('\n');
 </script>
 
 <div class="node-error">
-	<p>{message}</p>
+	{#each message as line}
+		<p>{line}</p>
+	{/each}
 </div>
 
 <style>

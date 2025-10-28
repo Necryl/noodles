@@ -111,7 +111,7 @@
 					{:else}
 						<NodeError
 							details={`[Node ID:${id}][Index:${i}]`}
-							message={`Input type is invalid, incoming value:[${nValue}], types: ${typeof nValue} \u2192 ${input.type}`}
+							message={`Input type is invalid, incoming value: ${nValue}\ntypes:\n${typeof nValue} \u2192 ${input.type}`}
 						/>
 					{/if}
 				{/if}
@@ -124,27 +124,6 @@
 			{/if}
 		</div>
 	{/each}
-
-	<!-- {#if nodeDef.data}
-		{#each nodeDef.data as dataDef, i}
-			{#if 'name' in dataDef && dataDef.type === 'string' && initialNode.data}
-				<div class="field">
-					<label for={`${id}-${dataDef.name}`}>{dataDef.name}</label>
-					{#if dataDef.ui.type === 'input'}
-						<InputElem
-							id={`${id}-${dataDef.name}`}
-							type={'inputIndex' in dataDef
-								? nodeDef.io.inputs[(dataDef as any).inputIndex]?.type
-								: undefined}
-							value={(initialNode.data[i] as any)?.value}
-							nodeID={id}
-							setValue={(value: any) => updateNodeValue(i, value)}
-						/>
-					{/if}
-				</div>
-			{/if}
-		{/each}
-	{/if} -->
 </div>
 
 <style>
@@ -158,6 +137,7 @@
 		align-items: center;
 		padding: 0.5rem;
 		overflow: auto;
+		width: 100%;
 	}
 
 	.result {
@@ -169,5 +149,6 @@
 		display: flex;
 		padding: 0.5rem;
 		overflow: auto;
+		width: 100%;
 	}
 </style>

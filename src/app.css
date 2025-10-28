@@ -34,17 +34,18 @@
 	width: var(--size);
 	z-index: 1;
 }
+.node * {
+	box-sizing: border-box;
+}
 
 .node {
 	--node-padding: 1rem;
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
-	min-width: 10rem;
-	max-width: 17rem;
+	width: 15rem;
 	min-height: 5rem;
 	max-height: fit-content;
-
 }
 
 .node .node-title {
@@ -79,16 +80,16 @@
 
 .node .field {
 	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
+	gap: 0.75rem;
 	position: relative;
+	align-items: center;
 }
 
 .node .field:last-child {
 	padding-bottom: var(--node-padding);
 }
 
-.node>*:not(.handle, .node-title) {
+.node > *:not(.handle, .node-title) {
 	padding-left: var(--node-padding);
 	padding-right: var(--node-padding);
 }
@@ -99,6 +100,7 @@
 	border: 1px solid rgba(255, 255, 255, 0.3);
 	border-radius: 0.25rem;
 	color: var(--color-text-1);
+	width: 100%;
 }
 
 .node .input:hover {

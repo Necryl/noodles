@@ -241,6 +241,115 @@ export const nodeDefs = {
 		},
 		defaultData: (): number[] => [0, 0]
 	},
+	comparisonNode: {
+		name: 'Compare',
+		io: {
+			inputs: [
+				{ name: 'a', type: 'any', ui: { type: 'show', showName: false }, maxConnections: 1 },
+				{ name: 'b', type: 'any', ui: { type: 'show', showName: false }, maxConnections: 1 }
+			],
+			outputs: [{ name: 'isEqual', type: 'boolean', showName: true, maxConnections: Infinity }]
+		},
+		data: [
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
+		],
+		logic: (
+			inputs: (number | string | boolean)[][] = [],
+			datas: (number | string | boolean)[]
+		): NodeValueCache => {
+			// console.log('comparison node inputs:', inputs);
+			// console.log('comparison node datas:', datas);
+			const inputA = inputs[0];
+			const inputB = inputs[1];
+			const dataA = datas[0];
+			const dataB = datas[1];
+
+			const valueA = inputA.length > 0 ? inputA[0] : dataA;
+			const valueB = inputB.length > 0 ? inputB[0] : dataB;
+
+			const outputValue = valueA === valueB;
+
+			return {
+				inputs: [valueA, valueB],
+				outputs: [outputValue]
+			};
+		},
+		defaultData: (): (number | string | boolean)[] => [0, 0]
+	},
+	ifNode: {
+		name: 'If',
+		io: {
+			inputs: [
+				{
+					name: 'condition',
+					type: 'boolean',
+					ui: { type: 'show', showName: false },
+					maxConnections: 1
+				},
+				{
+					name: 'trueValue',
+					type: 'any',
+					ui: { type: 'show', showName: false },
+					maxConnections: 1
+				},
+				{
+					name: 'falseValue',
+					type: 'any',
+					ui: { type: 'show', showName: false },
+					maxConnections: 1
+				}
+			],
+			outputs: [{ name: 'output', type: 'any', showName: true, maxConnections: Infinity }]
+		},
+		data: [
+			{
+				type: 'plugin',
+				inputIndex: 0,
+				ui: { type: 'input', showName: false },
+				defaultValue: false
+			},
+			{
+				type: 'plugin',
+				inputIndex: 1,
+				ui: { type: 'input', showName: false },
+				defaultValue: 0
+			},
+			{
+				type: 'plugin',
+				inputIndex: 2,
+				ui: { type: 'input', showName: false },
+				defaultValue: 0
+			}
+		],
+		logic: (
+			inputs: (number | string | boolean)[][] = [],
+			datas: (number | string | boolean)[]
+		): NodeValueCache => {
+			// console.log('if node inputs:', inputs);
+			// console.log('if node datas:', datas);
+			const conditionInput = inputs[0];
+			const trueInput = inputs[1];
+			const falseInput = inputs[2];
+			const conditionData = datas[0];
+			const trueData = datas[1];
+			const falseData = datas[2];
+
+			const conditionValue =
+				conditionInput.length > 0 ? conditionInput[0] : (conditionData as boolean);
+			const trueValue = trueInput.length > 0 ? trueInput[0] : trueData;
+			const falseValue = falseInput.length > 0 ? falseInput[0] : falseData;
+
+			const outputValue =
+				conditionValue === true ? trueValue : conditionValue === false ? falseValue : null;
+
+			return {
+				inputs: [conditionValue, trueValue, falseValue],
+				outputs: [outputValue]
+			};
+		},
+		defaultData: (): (number | string | boolean)[] => [false, 0, 0]
+	},
 
 	outputNode: {
 		name: 'Output',

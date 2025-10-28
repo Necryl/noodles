@@ -106,12 +106,12 @@
 					{/if}
 				{:else if input.ui.type === 'show'}
 					{@const nValue = (nodeValue() as GNode)?.inputs?.[i] ?? pluginDef.defaultValue}
-					{#if (typeof nValue === input.type || input.type === 'any') && checkInputTypes()[i]}
+					{#if (typeof nValue === input.type || input.type === 'any') && checkInputTypes()?.[i]}
 						<div class="input-value">{(nodeValue() as GNode)?.inputs?.[i] ?? ' '}</div>
 					{:else}
 						<NodeError
 							details={`[Node ID:${id}][Index:${i}]`}
-							message={`Input type is invalid, nvalue[${nValue}] ${typeof nValue} \u2192 ${input.type}`}
+							message={`Input type is invalid, incoming value:[${nValue}], types: ${typeof nValue} \u2192 ${input.type}`}
 						/>
 					{/if}
 				{/if}

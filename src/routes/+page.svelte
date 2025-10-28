@@ -115,20 +115,23 @@
 		// console.log('deleting nodes:', nodes);
 		// console.log('deleting edges:', edges);
 		edges.forEach((edge) => {
+			const sourceNode = $graphStore.graph.get(edge.source);
+			const targetNode = $graphStore.graph.get(edge.target);
+			if (!sourceNode || !targetNode) return;
+
 			const source: EdgeSource = {
 				id: edge.source,
-				outputIndex: Number(edge.sourceHandle?.at(-1)),
+				outputIndex: Number(edge.sourceHandle?.split('-').pop()),
 				type: ''
 			};
-			source.type =
-				nodeDefs[$graphStore.graph.get(source.id).type].io.outputs[source.outputIndex].type;
+			source.type = nodeDefs[sourceNode.type].io.outputs[source.outputIndex].type;
+
 			const target: EdgeTarget = {
 				id: edge.target,
-				inputIndex: Number(edge.targetHandle?.at(-1)),
+				inputIndex: Number(edge.targetHandle?.split('-').pop()),
 				type: ''
 			};
-			target.type =
-				nodeDefs[$graphStore.graph.get(target.id).type].io.inputs[target.inputIndex].type;
+			target.type = nodeDefs[targetNode.type].io.inputs[target.inputIndex].type;
 
 			engine.removeEdge(source, target);
 		});
@@ -139,35 +142,42 @@
 
 	const connectionHandler: OnConnect = (connection) => {
 		// console.log('connecting:', connection);
+		const sourceNode = $graphStore.graph.get(connection.source);
+		const targetNode = $graphStore.graph.get(connection.target);
+		if (!sourceNode || !targetNode) return;
+
 		const source: EdgeSource = {
 			id: connection.source,
-			outputIndex: Number(connection.sourceHandle?.at(-1)),
+			outputIndex: Number(connection.sourceHandle?.split('-').pop()),
 			type: ''
 		};
-		source.type =
-			nodeDefs[$graphStore.graph.get(source.id).type].io.outputs[source.outputIndex].type;
+		source.type = nodeDefs[sourceNode.type].io.outputs[source.outputIndex].type;
 
 		const target: EdgeTarget = {
 			id: connection.target,
-			inputIndex: Number(connection.targetHandle?.at(-1)),
+			inputIndex: Number(connection.targetHandle?.split('-').pop()),
 			type: ''
 		};
-		target.type = nodeDefs[$graphStore.graph.get(target.id).type].io.inputs[target.inputIndex].type;
+		target.type = nodeDefs[targetNode.type].io.inputs[target.inputIndex].type;
 		console.log('connecting source:', source, 'target:', target);
 		engine.addEdge(source, target);
 	};
 
 	const checkConnectionValidity: IsValidConnection = (connection) => {
+		if (!connection.sourceHandle || !connection.targetHandle) return false;
+
 		const sourceSocket = {
 			id: connection.source,
-			index: Number(connection.sourceHandle.at(-1))
+			index: Number(connection.sourceHandle.split('-').pop())
 		};
 		const targetSocket = {
 			id: connection.target,
-			index: Number(connection.targetHandle.at(-1))
+			index: Number(connection.targetHandle.split('-').pop())
 		};
 		const source = $graphStore.graph.get(sourceSocket.id);
 		const target = $graphStore.graph.get(targetSocket.id);
+
+		if (!source || !target) return false;
 
 		const sourceMax = nodeDefs[source.type].io.outputs[sourceSocket.index].maxConnections;
 		const targetMax = nodeDefs[target.type].io.inputs[targetSocket.index].maxConnections;

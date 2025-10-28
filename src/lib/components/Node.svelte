@@ -19,11 +19,11 @@
 	const edges = useEdges();
 
 	const status = $derived(() => {
-		console.log('starting status calculation for:', id);
+		// console.log('starting status calculation for:', id);
 		let status = { node: 'pending', inputs: [] as boolean[] };
 		const values = nodeValue() as NodeValueCache | undefined;
 		const inputTypes = nodeDef.io.inputs.map((socket) => socket.type);
-		console.log('values:', values);
+		// console.log('values:', values);
 		if (
 			!(!values || !values.inputs || (values.inputs.length === 0 && values.outputs.length === 0))
 		) {
@@ -32,7 +32,7 @@
 					let result =
 						(typeof curr === inputTypes[index] || inputTypes[index] === 'any') && verdict;
 					status.inputs[index] = result;
-					console.log(`STATUS ${id} [Input index: ${index}]: `, result);
+					// console.log(`STATUS ${id} [Input index: ${index}]: `, result);
 					return result;
 				}, true)
 			) {
@@ -41,7 +41,7 @@
 				status.node = 'calculated';
 			}
 		}
-		console.log('status calculated for', id, ':', status, '<<');
+		// console.log('status calculated for', id, ':', status, '<<');
 		return status;
 	});
 

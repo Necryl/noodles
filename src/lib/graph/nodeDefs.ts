@@ -17,11 +17,28 @@ export interface BaseNode {
 }
 
 export interface NodeValueCache {
-	inputs: any[];
-	outputs: any[];
+	inputs: (number | string | boolean | null)[];
+	outputs: (number | string | boolean | null)[];
 }
 
 export const nodeDefs = {
+	booleanNode: {
+		name: 'Boolean',
+		io: {
+			inputs: [
+				{ name: 'value', type: 'boolean', ui: { type: 'none', showName: false }, maxConnections: 0 }
+			],
+			outputs: [{ name: 'value', type: 'boolean', showName: true, maxConnections: Infinity }]
+		},
+		data: [
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: false }
+		],
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		logic: (inputs: never[] = [], datas: (string | number | boolean)[]): NodeValueCache => {
+			return { inputs: [], outputs: [datas[0]] };
+		},
+		defaultData: (): (string | number | boolean)[] => [false]
+	},
 	numberNode: {
 		name: 'Number',
 		io: {
@@ -243,10 +260,11 @@ export const nodeDefs = {
 		],
 
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		logic: (inputs: any[] = [], datas: []): NodeValueCache => {
+		logic: (inputs: (number | string | boolean)[][] = [], datas: []): NodeValueCache => {
 			// console.log('output node inputs:', inputs);
 			// console.log('output node datas:', datas);
-			return { inputs: [...inputs], outputs: inputs[0] };
+			const inputValues = inputs.map((socket) => (socket.length > 0 ? socket[0] : null));
+			return { inputs: inputValues, outputs: inputValues };
 		},
 		defaultData: (): [] => []
 	}

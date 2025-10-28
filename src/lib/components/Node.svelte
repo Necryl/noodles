@@ -72,10 +72,12 @@
 	{#if nodeDef.io.outputs.length === 1}
 		<Handle type="source" class="handle" position={Position.Right} id={`output-0`} />
 	{:else}
-		{@const outputs = nodeDef.io.outputs as readonly { name: string }[]}
+		{@const outputs = nodeDef.io.outputs as readonly { name: string; showName: boolean }[]}
 		{#each outputs as output, i}
 			<div class="field">
-				<label for={`output-${i}`}>{output.name}</label>
+				{#if output.showName}
+					<label for={`output-${i}`}>{output.name}</label>
+				{/if}
 				<Handle type="source" class="handle" position={Position.Right} id={`output-${i}`} />
 			</div>
 		{/each}
@@ -89,7 +91,9 @@
 			{#if input.maxConnections > 0}
 				<Handle type="target" class="handle" position={Position.Left} id={`input-${i}`} />
 			{/if}
-			<label for={`input-${i}`}>{input.name}</label>
+			{#if input.ui.showName}
+				<label for={`input-${i}`}>{input.name}</label>
+			{/if}
 
 			{#if pluginDef}
 				{#if !(isInputConnected().get(i) ?? false)}

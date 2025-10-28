@@ -20,10 +20,14 @@ export const nodeDefs = {
 	numberNode: {
 		name: 'Number',
 		io: {
-			inputs: [{ name: 'value', type: 'number', ui: { type: 'none' }, maxConnections: 0 }],
-			outputs: [{ name: 'value', type: 'number', maxConnections: Infinity }]
+			inputs: [
+				{ name: 'value', type: 'number', ui: { type: 'none', showName: false }, maxConnections: 0 }
+			],
+			outputs: [{ name: 'value', type: 'number', showName: true, maxConnections: Infinity }]
 		},
-		data: [{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 }],
+		data: [
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 }
+		],
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		logic: (inputs: never[] = [], datas: (string | number | boolean)[]) => {
 			return { inputs: [], outputs: [datas[0]] };
@@ -33,10 +37,14 @@ export const nodeDefs = {
 	stringNode: {
 		name: 'String',
 		io: {
-			inputs: [{ name: 'value', type: 'string', ui: { type: 'none' }, maxConnections: 0 }],
-			outputs: [{ name: 'value', type: 'string', maxConnections: Infinity }]
+			inputs: [
+				{ name: 'value', type: 'string', ui: { type: 'none', showName: false }, maxConnections: 0 }
+			],
+			outputs: [{ name: 'value', type: 'string', showName: true, maxConnections: Infinity }]
 		},
-		data: [{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: '' }],
+		data: [
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: '' }
+		],
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		logic: (inputs: never[] = [], datas: (string | number | boolean)[]) => {
 			return { inputs: [], outputs: [datas[0]] };
@@ -47,14 +55,14 @@ export const nodeDefs = {
 		name: 'Add',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'any', ui: { type: 'show' }, maxConnections: 1 },
-				{ name: 'b', type: 'any', ui: { type: 'show' }, maxConnections: 1 }
+				{ name: 'a', type: 'any', ui: { type: 'show', showName: false }, maxConnections: 1 },
+				{ name: 'b', type: 'any', ui: { type: 'show', showName: false }, maxConnections: 1 }
 			],
-			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
+			outputs: [{ name: 'sum', type: 'any', showName: true, maxConnections: Infinity }]
 		},
 		data: [
-			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
-			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
 		logic: (
 			inputs: (number | string | boolean)[][] = [],
@@ -98,14 +106,14 @@ export const nodeDefs = {
 		name: 'Subtract',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: 1 },
-				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: 1 }
+				{ name: 'a', type: 'number', ui: { type: 'show', showName: false }, maxConnections: 1 },
+				{ name: 'b', type: 'number', ui: { type: 'show', showName: false }, maxConnections: 1 }
 			],
-			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
+			outputs: [{ name: 'sum', type: 'any', showName: true, maxConnections: Infinity }]
 		},
 		data: [
-			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
-			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
 		logic: (inputs: number[][] = [], datas: number[] = []) => {
 			// console.log('subtraction node inputs:', inputs);
@@ -137,14 +145,14 @@ export const nodeDefs = {
 		name: 'Multiply',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: 1 },
-				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: 1 }
+				{ name: 'a', type: 'number', ui: { type: 'show', showName: false }, maxConnections: 1 },
+				{ name: 'b', type: 'number', ui: { type: 'show', showName: false }, maxConnections: 1 }
 			],
-			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
+			outputs: [{ name: 'sum', type: 'any', showName: true, maxConnections: Infinity }]
 		},
 		data: [
-			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
-			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
 		logic: (inputs: number[][] = [], datas: number[] = []) => {
 			// console.log('subtraction node inputs:', inputs);
@@ -176,14 +184,14 @@ export const nodeDefs = {
 		name: 'Divide',
 		io: {
 			inputs: [
-				{ name: 'a', type: 'number', ui: { type: 'show' }, maxConnections: 1 },
-				{ name: 'b', type: 'number', ui: { type: 'show' }, maxConnections: 1 }
+				{ name: 'a', type: 'number', ui: { type: 'show', showName: false }, maxConnections: 1 },
+				{ name: 'b', type: 'number', ui: { type: 'show', showName: false }, maxConnections: 1 }
 			],
-			outputs: [{ name: 'sum', type: 'any', maxConnections: Infinity }]
+			outputs: [{ name: 'sum', type: 'any', showName: true, maxConnections: Infinity }]
 		},
 		data: [
-			{ type: 'plugin', inputIndex: 0, ui: { type: 'input' }, defaultValue: 0 },
-			{ type: 'plugin', inputIndex: 1, ui: { type: 'input' }, defaultValue: 0 }
+			{ type: 'plugin', inputIndex: 0, ui: { type: 'input', showName: false }, defaultValue: 0 },
+			{ type: 'plugin', inputIndex: 1, ui: { type: 'input', showName: false }, defaultValue: 0 }
 		],
 		logic: (inputs: number[][] = [], datas: number[] = []) => {
 			// console.log('subtraction node inputs:', inputs);
@@ -215,14 +223,16 @@ export const nodeDefs = {
 	outputNode: {
 		name: 'Output',
 		io: {
-			inputs: [{ name: 'input', type: 'any', ui: { type: 'none' }, maxConnections: 1 }],
+			inputs: [
+				{ name: 'input', type: 'any', ui: { type: 'none', showName: false }, maxConnections: 1 }
+			],
 			outputs: []
 		},
 		data: [
 			{
 				type: 'plugin',
 				inputIndex: 0,
-				ui: { type: 'display' },
+				ui: { type: 'display', showName: false },
 				defaultValue: ' '
 			}
 		],

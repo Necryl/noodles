@@ -84,6 +84,7 @@
 
 {#if true}
 	{@const nStatus = status()}
+	{@const nValue = nodeValue() as GNode}
 	<div class={['node', nStatus.node]}>
 		<div class="node-title">
 			<button
@@ -95,7 +96,7 @@
 		{#if nodeDef.io.outputs.length === 1}
 			<Handle
 				type="source"
-				class={['handle', nodeDef.io.outputs[0].type]}
+				class={['handle', nValue ? typeof nValue.outputs[0] : nodeDef.io.outputs[0].type]}
 				position={Position.Right}
 				id={`output-0`}
 			/>
@@ -112,7 +113,7 @@
 					{/if}
 					<Handle
 						type="source"
-						class={['handle', output.type]}
+						class={['handle', nValue ? typeof nValue.outputs[i] : output.type]}
 						position={Position.Right}
 						id={`output-${i}`}
 					/>
@@ -151,13 +152,13 @@
 							/>
 						{/if}
 					{:else if input.ui.type === 'show'}
-						{@const nValue = (nodeValue() as GNode)?.inputs?.[i]}
+						{@const inputValue = nValue?.inputs?.[i]}
 						{#if nStatus.node !== 'error' && nStatus.inputs[i] !== false}
-							<div class="input-value">{nValue ?? ' '}</div>
+							<div class="input-value">{inputValue ?? ' '}</div>
 						{:else}
 							<NodeError
 								details={`[Node ID:${id}][Index:${i}]`}
-								message={`Input type is invalid, incoming value: ${nValue}\ntypes:\n${typeof nValue} \u2192 ${input.type}`}
+								message={`Input type is invalid, incoming value: ${inputValue}\ntypes:\n${typeof inputValue} \u2192 ${input.type}`}
 							/>
 						{/if}
 					{/if}

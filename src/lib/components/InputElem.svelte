@@ -9,9 +9,10 @@
 			case 'boolean':
 				return Boolean(value);
 			case 'string':
+				return String(value);
 			case 'any':
-			default:
-				return value;
+				const numtest = Number(value);
+				return numtest ? numtest : value;
 		}
 	}
 	let booleanValue = $state(defaultValue as boolean);

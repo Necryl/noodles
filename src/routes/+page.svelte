@@ -73,7 +73,19 @@
 	let nodes = $state.raw<Node[]>(initialNodes);
 	let edges = $state.raw<Edge[]>(initialEdges);
 
+	import * as wasm from '$lib/wasm/wasm_lib';
+
 	onMount(() => {
+		// Initialize WASM
+		// wasm.init(); // If init is required, but with vite-plugin-wasm it usually handles it or returns a promise if using async.
+		// Actually with vite-plugin-wasm top-level await support, we might just use it.
+		// Let's print the result of the add function.
+		try {
+			console.log('WASM add(10, 20):', wasm.add(10, 20));
+		} catch (e) {
+			console.error('WASM error:', e);
+		}
+
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key && e.key.toLowerCase() === 'a' && e.shiftKey) {
 				// open at last known pointer coords (no viewport-inside check)

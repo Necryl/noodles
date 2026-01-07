@@ -11,7 +11,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint ."
+		"lint": "prettier --check . && eslint .",
+		"build:wasm": "wasm-pack build ./wasm-lib --target bundler --out-dir ../src/lib/wasm"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",
@@ -38,7 +39,9 @@
 		"tailwindcss": "^4.1.13",
 		"typescript": "^5.9.2",
 		"typescript-eslint": "^8.44.1",
-		"vite": "^7.1.7"
+		"vite": "^7.1.7",
+		"vite-plugin-top-level-await": "^1.6.0",
+		"vite-plugin-wasm": "^3.5.0"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

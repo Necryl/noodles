@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SvelteFlow, MiniMap, Controls, useSvelteFlow, Background, Panel } from '@xyflow/svelte';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import type {
 		Node,
 		Edge,
@@ -16,13 +17,9 @@
 	import { openMenu, closeMenu, menuX, menuY } from '$lib/stores/add-menu';
 	import { lastMouseX, lastMouseY } from '$lib/stores/misc';
 	import { getNextID, graphStore } from '$lib/stores/graph';
-	import {
-		nodeDefs,
-		type NodeDef,
-		type GNode,
-		type EdgeSource,
-		type EdgeTarget
-	} from '$lib/graph/nodeDefs';
+	import type { GNode } from '$lib/stores/graph';
+	// Remove static nodeDefs import
+	// We will access definitions via $graphStore.nodeDefinitions
 
 	// Define a custom node type that includes possible data properties
 	type AppNode = Node<{ value?: string; label?: string }>;
@@ -41,8 +38,13 @@
 	// Actually better to wait for WASM or just init UI and sync WASM.
 	// Let's go with: init UI, then add to WASM in onMount.
 
-	// Initial Data for Node 1
-	const n1Data = [nodeDefs.stringNode.data[0].defaultValue];
+	// We need to wait for WASM/Definitions to load before we can really do anything meaningful with initial nodes that depends on schema defaults.
+	// However, for the initial render, we can hardcode the initial data if we know it, or better:
+	// Wait for mount.
+
+	// Initial Data for Node 1 (Hardcoded for bootstrap, or better: empty until load)
+	// For now let's assume standard defaults for these specific initial nodes
+	const n1Data = ['']; // String default
 
 	const initialNodes: Node[] = [
 		{
@@ -134,19 +136,18 @@
 		const flowPos = svelteFlowInstance.screenToFlowPosition({ x: $menuX, y: $menuY });
 		if (!flowPos) return;
 
+		const def = $graphStore.nodeDefinitions.get(nodeType);
+		if (!def) {
+			console.error('Unknown node type:', nodeType);
+			return;
+		}
+
 		const newNodeData: GNode = {
 			id,
-			type: nodeType as keyof typeof nodeDefs,
-			data: (nodeDefs[nodeType as keyof typeof nodeDefs].data?.map((d) => d.defaultValue) ||
-				[]) as any,
-			inputs: Array.from(
-				{ length: nodeDefs[nodeType as keyof typeof nodeDefs].io.inputs.length },
-				() => []
-			),
-			outputs: Array.from(
-				{ length: nodeDefs[nodeType as keyof typeof nodeDefs].io.outputs.length },
-				() => []
-			)
+			type: nodeType,
+			data: (def.data?.map((d) => d.defaultValue) || []) as any,
+			inputs: Array.from({ length: def.io.inputs.length }, () => []),
+			outputs: Array.from({ length: def.io.outputs.length }, () => [])
 		};
 
 		await engine.addNode(newNodeData);
@@ -188,7 +189,10 @@
 
 		// Check for replacement (if target socket is full)
 		// Check for replacement (if target socket is full)
-		const targetSocketDef = nodeDefs[targetNode.type].io.inputs[targetInputIndex];
+		const targetNodeDef = $graphStore.nodeDefinitions.get(targetNode.type);
+		if (!targetNodeDef) return;
+
+		const targetSocketDef = targetNodeDef.io.inputs[targetInputIndex];
 
 		if (targetNode.inputs[targetInputIndex].length >= targetSocketDef.maxConnections) {
 			// Only replace if maxConnections is 1
@@ -236,6 +240,17 @@
 			};
 			// Append to edges (after filtering happened above)
 			edges = [...edges, newEdge];
+
+			// Check for auto-evaluation flag in schema
+			const targetDef = $graphStore.nodeDefinitions.get(targetNode.type);
+			if (targetDef && targetDef.autoEvaluateOnConnect) {
+				const cache = get(graphStore).cache;
+				// Check if source is ready (simplified check, real logic might be more complex but this matches previous behavior)
+				if (cache.has(connection.source)) {
+					// console.log("Source ready, auto-calculating output node:", connection.target);
+					await engine.evaluateNode(connection.target);
+				}
+			}
 		} catch (err) {
 			console.error('Failed to add new edge:', err);
 		}
@@ -257,11 +272,15 @@
 
 		if (!source || !target) return false;
 
-		const sourceMax = nodeDefs[source.type].io.outputs[sourceSocket.index].maxConnections;
-		const targetMax = nodeDefs[target.type].io.inputs[targetSocket.index].maxConnections;
+		const sourceDef = $graphStore.nodeDefinitions.get(source.type);
+		const targetDef = $graphStore.nodeDefinitions.get(target.type);
+		if (!sourceDef || !targetDef) return false;
 
-		const sourceType = nodeDefs[source.type].io.outputs[sourceSocket.index].type;
-		const targetType = nodeDefs[target.type].io.inputs[targetSocket.index].type;
+		const sourceMax = sourceDef.io.outputs[sourceSocket.index].maxConnections;
+		const targetMax = targetDef.io.inputs[targetSocket.index].maxConnections;
+
+		const sourceType = sourceDef.io.outputs[sourceSocket.index].type;
+		const targetType = targetDef.io.inputs[targetSocket.index].type;
 
 		// Type check
 		if (!(sourceType === targetType || sourceType === 'any' || targetType === 'any')) {
@@ -284,32 +303,38 @@
 	let colorMode: ColorMode = $state('system');
 </script>
 
-<div style="height: 100vh; width: 100vw;">
-	<SvelteFlow
-		bind:nodes
-		bind:edges
-		{nodeTypes}
-		{colorMode}
-		fitView
-		deleteKey="x"
-		onpanecontextmenu={({ event }) => {
-			event.preventDefault();
-			const screenPos = { x: event.clientX, y: event.clientY };
-			if (screenPos) {
-				openMenu(screenPos.x, screenPos.y);
-			}
-		}}
-		onpaneclick={closeMenu}
-		onconnect={connectionHandler}
-		ondelete={deleteHandler}
-		isValidConnection={checkConnectionValidity}
-	>
-		<Panel position="top-left">
-			<h1>Noodles</h1>
-		</Panel>
-		<Background />
-		<Controls />
-		<MiniMap />
-		<AddMenu onAdd={addNode} />
-	</SvelteFlow>
+<div
+	style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; background: #1a1a1a; color: #fff;"
+>
+	{#if $graphStore.nodeDefinitions.size > 0}
+		<SvelteFlow
+			bind:nodes
+			bind:edges
+			{nodeTypes}
+			{colorMode}
+			fitView
+			deleteKey="x"
+			onpanecontextmenu={({ event }) => {
+				event.preventDefault();
+				const screenPos = { x: event.clientX, y: event.clientY };
+				if (screenPos) {
+					openMenu(screenPos.x, screenPos.y);
+				}
+			}}
+			onpaneclick={closeMenu}
+			onconnect={connectionHandler}
+			ondelete={deleteHandler}
+			isValidConnection={checkConnectionValidity}
+		>
+			<Panel position="top-left">
+				<h1>Noodles</h1>
+			</Panel>
+			<Background />
+			<Controls />
+			<MiniMap />
+			<AddMenu onAdd={addNode} />
+		</SvelteFlow>
+	{:else}
+		<div class="loading">Loading Noodles...</div>
+	{/if}
 </div>

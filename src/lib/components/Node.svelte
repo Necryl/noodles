@@ -1,12 +1,6 @@
 <script lang="ts">
 	import { graphStore } from '$lib/stores/graph';
-	import {
-		nodeDefs,
-		type GNode,
-		type PluginDef,
-		type NodeData,
-		type NodeValueCache
-	} from '$lib/graph/nodeDefs';
+	import type { GNode, NodeData, NodeValueCache, NodeSchema } from '$lib/stores/graph';
 	import { Position, type NodeProps, Handle, useEdges } from '@xyflow/svelte';
 	import InputElem from './InputElem.svelte';
 	import NodeError from './NodeError.svelte';
@@ -15,7 +9,7 @@
 	let { id, data }: NodeProps = $props();
 	const initialNode = data as unknown as GNode;
 	const liveNode = $derived(() => $graphStore.graph.get(initialNode.id));
-	const nodeDef = nodeDefs[initialNode.type];
+	const nodeDef = $derived(() => $graphStore.nodeDefinitions.get(initialNode.type));
 	const edges = useEdges();
 
 	// --- 2. REACTIVE STATE ---
@@ -37,8 +31,11 @@
 	const status = $derived(() => {
 		// console.log(`[Status Calc] Node ${id} cache:`, $graphStore.cache.get(id));
 		let status = { node: 'pending', inputs: [] as boolean[] };
+		const def = nodeDef();
+		if (!def) return status;
+
 		const values = nodeValue() as NodeValueCache | undefined;
-		const inputTypes = nodeDef.io.inputs.map((socket) => socket.type);
+		const inputTypes = def.io.inputs.map((socket) => socket.type);
 		const connected = isInputConnected();
 
 		if (
@@ -90,7 +87,8 @@
 	}
 </script>
 
-{#if true}
+{#if nodeDef()}
+	{@const def = nodeDef()!}
 	{@const nStatus = status()}
 	{@const nValue = nodeValue() as GNode}
 	<div class={['node', nStatus.node]}>
@@ -99,24 +97,20 @@
 				class="calculate-node-btn preset-glass-primary btn"
 				onclick={() => graphStore.evaluateNode(initialNode.id)}>C</button
 			>
-			<h6 class="node-name">{nodeDef.name}</h6>
+			<h6 class="node-name">{def.name}</h6>
 		</div>
-		{#if nodeDef.io.outputs.length === 1}
+		{#if def.io.outputs.length === 1}
 			<Handle
 				type="source"
-				class={['handle', nValue ? typeof nValue.outputs[0] : nodeDef.io.outputs[0].type]}
+				class={['handle', nValue ? typeof nValue.outputs[0] : def.io.outputs[0].type]}
 				position={Position.Right}
 				id={`output-0`}
 			/>
 		{:else}
-			{@const outputs = nodeDef.io.outputs as readonly {
-				name: string;
-				type: string;
-				showName: boolean;
-			}[]}
+			{@const outputs = def.io.outputs}
 			{#each outputs as output, i}
 				<div class="field">
-					{#if output.showName}
+					{#if output.ui.showName}
 						<label for={`output-${i}`}>{output.name}</label>
 					{/if}
 					<Handle
@@ -129,10 +123,8 @@
 			{/each}
 		{/if}
 
-		{#each nodeDef.io.inputs as input, i}
-			{@const pluginDef = nodeDef.data?.find(
-				(d) => 'type' in d && d.type === 'plugin' && 'inputIndex' in d && d.inputIndex === i
-			) as PluginDef | undefined}
+		{#each def.io.inputs as input, i}
+			{@const pluginDef = def.data?.find((d) => d.type === 'plugin' && d.inputIndex === i)}
 			<div class="field">
 				{#if input.maxConnections > 0}
 					<Handle
@@ -151,9 +143,7 @@
 						{#if pluginDef.ui.type === 'input'}
 							<InputElem
 								id={`input-${i}`}
-								type={'inputIndex' in pluginDef
-									? nodeDef.io.inputs[pluginDef.inputIndex]?.type
-									: undefined}
+								type={def.io.inputs[pluginDef.inputIndex]?.type}
 								defaultValue={pluginDef.defaultValue}
 								nodeID={id}
 								setValue={(value: any) => updateNodeValue(i, value)}

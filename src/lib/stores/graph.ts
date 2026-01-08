@@ -1,22 +1,64 @@
 import { writable, get } from 'svelte/store';
 import type { GraphEngine } from '$lib/wasm/wasm_lib';
-import { nodeDefs, type GNode } from '$lib/graph/nodeDefs';
+
+
+// Define the shape of the NodeSchema we get from WASM
+export interface NodeSchema {
+    name: string;
+    io: {
+        inputs: Array<{
+            name: string;
+            type: string;
+            ui: { type: string; showName: boolean };
+            maxConnections: number;
+        }>;
+        outputs: Array<{
+            name: string;
+            type: string;
+            ui: { type: string; showName: boolean };
+            maxConnections: number;
+        }>;
+    };
+    data: Array<{
+        type: string;
+        inputIndex: number;
+        ui: { type: string; showName: boolean; options?: string[] };
+        defaultValue: any;
+    }>;
+    autoEvaluateOnConnect: boolean;
+}
+
+// We still need GNode/BaseNode types for UI state, but they should now be generic
+export interface GNode {
+    id: string;
+    type: string;
+    data: any[]; // Now generic, schema validates it
+    inputs: Array<Array<{ id: string; outputIndex: number; type: string }>>;
+    outputs: Array<Array<{ id: string; inputIndex: number; type: string }>>;
+}
 
 export interface NodeData {
     [key: string]: any;
+}
+
+export interface NodeValueCache {
+    inputs: any[];
+    outputs: any[];
 }
 
 export interface GraphState {
     graph: Map<string, GNode>;
     cache: Map<string, any>;
     engine: GraphEngine | null;
+    nodeDefinitions: Map<string, NodeSchema>; // New: Store definitions from WASM
 }
 
 function createGraphStore() {
     const { subscribe, set, update } = writable<GraphState>({
         graph: new Map(),
         cache: new Map(),
-        engine: null
+        engine: null,
+        nodeDefinitions: new Map()
     });
 
     let wasm: typeof import('$lib/wasm/wasm_lib') | null = null;
@@ -30,8 +72,29 @@ function createGraphStore() {
                 await (wasm as any).default();
             }
             engine = new wasm.GraphEngine();
-            update(state => ({ ...state, engine }));
-            console.log("GraphEngine initialized");
+
+            // Allow time for engine to settle? No, synchronous.
+            // Fetch definitions immediately
+            let defsMap = new Map<string, NodeSchema>();
+            try {
+                const defs = engine.get_node_defs();
+                // defs is a Map<string, NodeSchema>
+                if (defs instanceof Map) {
+                    defsMap = defs;
+                } else {
+                    // serde-wasm-bindgen map becomes object or Map depending on config.
+                    // Usually Object for string keys unless configured otherwise.
+                    // Let's assume Object and convert
+                    for (const [k, v] of Object.entries(defs)) {
+                        defsMap.set(k, v as NodeSchema);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load node definitions from WASM:", e);
+            }
+
+            update(state => ({ ...state, engine, nodeDefinitions: defsMap }));
+            console.log("GraphEngine initialized, loaded definitions:", defsMap.size);
         }
     })();
 

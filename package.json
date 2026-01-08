@@ -12,7 +12,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
-		"build:wasm": "wasm-pack build ./wasm-lib --target bundler --out-dir ../src/lib/wasm"
+		"build:wasm": "wasm-pack build ./wasm-lib --target web --out-dir ../src/lib/wasm"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",

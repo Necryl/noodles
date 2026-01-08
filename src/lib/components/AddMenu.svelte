@@ -1,19 +1,22 @@
 <script lang="ts">
-	import { nodeDefs } from '$lib/graph/nodeDefs';
+	import { graphStore } from '$lib/stores/graph';
 	import { menuVisible, menuX, menuY, closeMenu } from '$lib/stores/add-menu';
 	import { fade } from 'svelte/transition';
-	export let onAdd: (nodeName: string) => void;
+	// export let onAdd: (nodeName: string) => any;
+	let { onAdd }: { onAdd: (nodeName: string) => any } = $props();
 
 	type NodeListEntry = string | { [key: string]: string };
 	type NodeList = { [key: string]: NodeListEntry };
 
-	const nodeList: NodeList = (() => {
+	const nodeList = $derived(() => {
 		const result: NodeList = {};
-		(Object.keys(nodeDefs) as (keyof typeof nodeDefs)[]).forEach((key) => {
-			result[key] = nodeDefs[key].name;
-		});
+		// Group by category? For now flat list or use a category field if we added one.
+		// Existing behavior was just flat list.
+		for (const [key, def] of $graphStore.nodeDefinitions) {
+			result[key] = def.name;
+		}
 		return result;
-	})();
+	});
 	function addNode(nodeName: string) {
 		onAdd(nodeName);
 		closeMenu();
@@ -31,10 +34,10 @@
 	>
 		<h2>Add</h2>
 		<ul>
-			{#each Object.entries(nodeList) as [key, val] (key)}
+			{#each Object.entries(nodeList()) as [key, val] (key)}
 				{#if typeof val === 'string'}
 					<li class="add-menu-item">
-						<button role="menuitem" type="button" data-node-id={key} on:click={() => addNode(key)}>
+						<button role="menuitem" type="button" data-node-id={key} onclick={() => addNode(key)}>
 							{val}
 						</button>
 					</li>
@@ -51,7 +54,7 @@
 										role="menuitem"
 										type="button"
 										data-node-id={subId}
-										on:click={() => addNode(subId)}
+										onclick={() => addNode(subId)}
 									>
 										{subName}
 									</button>

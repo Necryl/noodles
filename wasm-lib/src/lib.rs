@@ -1,6 +1,7 @@
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 use wasm_bindgen::prelude::*;
+mod definitions; // Import definitions module
+use serde::{Serialize, Deserialize};
+use std::collections::{HashMap, HashSet};
 
 // We need a way to represent the "Any" type from TS.
 // SerdeValue can hold any JSON-serializable data.
@@ -37,36 +38,38 @@ pub struct NodeCache {
 pub struct GraphEngine {
     nodes: HashMap<String, Node>,
     cache: HashMap<String, SerdeValue>,
+    node_registry: HashMap<String, definitions::NodeDefinition>, // Stores logic + schema
 }
 
 #[wasm_bindgen]
 impl GraphEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> GraphEngine {
+        let registry = definitions::get_node_registry();
         GraphEngine {
             nodes: HashMap::new(),
             cache: HashMap::new(),
+            node_registry: registry,
         }
+    }
+
+    pub fn get_node_defs(&self) -> Result<JsValue, JsValue> {
+        // Extract just the schema part to send to JS
+        let mut schemas = HashMap::new();
+        for (key, def) in &self.node_registry {
+            schemas.insert(key.clone(), def.schema.clone());
+        }
+        Ok(serde_wasm_bindgen::to_value(&schemas)?)
     }
 
     pub fn add_node(&mut self, id: String, node_type: String, data: JsValue) -> Result<(), JsValue> {
         let parsed_data: Vec<SerdeValue> = serde_wasm_bindgen::from_value(data)?;
 
-        // Initialize empty connections based on node type
-        // Generator nodes (boolean, number, string) have 0 inputs for connections (maxConnections: 0)
-        let (input_count, output_count) = match node_type.as_str() {
-            "booleanNode" => (0, 1),
-            "numberNode" => (0, 1),
-            "stringNode" => (0, 1),
-            "additionNode" => (2, 1),
-            "subractionNode" => (2, 1),
-            "multiplicationNode" => (2, 1),
-            "divisionNode" => (2, 1),
-            "comparisonNode" => (2, 1),
-            "ifNode" => (3, 1),
-            "outputNode" => (1, 0), // 1 input, 0 output connections
-            _ => (0, 0), // fallback or error
-        };
+        // Lookup node type in registry
+        let def = self.node_registry.get(&node_type).ok_or_else(|| JsValue::from_str(&format!("Unknown node type: {}", node_type)))?;
+        
+        let input_count = def.schema.io.inputs.len();
+        let output_count = def.schema.io.outputs.len();
 
         let node = Node {
             id: id.clone(),
@@ -101,21 +104,21 @@ impl GraphEngine {
 
         let neighbors: Vec<String> = self.nodes.iter()
             .filter(|(_, n)| {
-                 n.inputs.iter().any(|socket| socket.iter().any(|c| c.id == id_string)) ||
-                 n.outputs.iter().any(|socket| socket.iter().any(|c| c.id == id_string))
+                 n.inputs.iter().any(|socket: &Vec<InputConnection>| socket.iter().any(|c| c.id == id_string)) ||
+                 n.outputs.iter().any(|socket: &Vec<OutputConnection>| socket.iter().any(|c| c.id == id_string))
             })
-            .map(|(k, _)| k.clone())
+            .map(|(k, _): (&String, &Node)| k.clone())
             .collect();
 
         for neighbor_id in neighbors {
              if let Some(node) = self.nodes.get_mut(&neighbor_id) {
                  // Remove from inputs
                  for socket in &mut node.inputs {
-                     socket.retain(|c| c.id != id_string);
+                     socket.retain(|c: &InputConnection| c.id != id_string);
                  }
                  // Remove from outputs
                  for socket in &mut node.outputs {
-                     socket.retain(|c| c.id != id_string);
+                     socket.retain(|c: &OutputConnection| c.id != id_string);
                  }
              }
         }
@@ -322,81 +325,14 @@ impl GraphEngine {
     }
 
     fn compute_logic(&self, node_type: &str, inputs: &Vec<Vec<SerdeValue>>, data: &Vec<SerdeValue>) -> Result<SerdeValue, JsValue> {
-        // Helper to get raw number
-        let get_num = |v: &SerdeValue| -> f64 {
-            v.as_f64().unwrap_or(0.0)
-        };
-        // Helper to get first input or default
-        let get_single_input = |idx: usize, default_idx: usize| -> f64 {
-             if idx < inputs.len() && !inputs[idx].is_empty() {
-                 get_num(&inputs[idx][0])
-             } else if default_idx < data.len() {
-                 get_num(&data[default_idx])
-             } else {
-                 0.0
+         // Lookup logic closure from registry
+         if let Some(def) = self.node_registry.get(node_type) {
+             match (def.logic)(inputs, data) {
+                 Ok(val) => Ok(val),
+                 Err(e) => Err(JsValue::from_str(&e))
              }
-        };
-
-        match node_type {
-             "booleanNode" => {
-                 Ok(data.get(0).cloned().unwrap_or(serde_json::json!(false)))
-             },
-             "numberNode" => {
-                 Ok(data.get(0).cloned().unwrap_or(serde_json::json!(0)))
-             },
-             "stringNode" => {
-                  Ok(data.get(0).cloned().unwrap_or(serde_json::json!("")))
-             },
-             "additionNode" => {
-                 let val_a = if !inputs[0].is_empty() { &inputs[0][0] } else { &data[0] };
-                 let val_b = if !inputs[1].is_empty() { &inputs[1][0] } else { &data[1] };
-                 
-                 if val_a.is_string() || val_b.is_string() {
-                     let get_str = |v: &SerdeValue| -> String {
-                         if let Some(s) = v.as_str() { s.to_string() }
-                         else { v.to_string() }
-                     };
-                     let s_a = get_str(val_a);
-                     let s_b = get_str(val_b);
-                     Ok(serde_json::json!(format!("{}{}", s_a, s_b)))
-                 } else {
-                     let f_a = val_a.as_f64().unwrap_or(0.0);
-                     let f_b = val_b.as_f64().unwrap_or(0.0);
-                     Ok(serde_json::json!(f_a + f_b))
-                 }
-             },
-             "subractionNode" => {
-                 let a = get_single_input(0, 0);
-                 let b = get_single_input(1, 1);
-                 Ok(serde_json::json!(a - b))
-             },
-             "multiplicationNode" => {
-                 let a = get_single_input(0, 0);
-                 let b = get_single_input(1, 1);
-                 Ok(serde_json::json!(a * b))
-             },
-             "divisionNode" => {
-                 let a = get_single_input(0, 0);
-                 let b = get_single_input(1, 1);
-                 if b == 0.0 { Ok(serde_json::json!(0)) } else { Ok(serde_json::json!(a / b)) }
-             },
-             "comparisonNode" => {
-                  // For "any", we might need more complex logic. Simplified to numbers for now or strict json eq.
-                 let a_val = if !inputs[0].is_empty() { &inputs[0][0] } else { &data[0] };
-                 let b_val = if !inputs[1].is_empty() { &inputs[1][0] } else { &data[1] };
-                 Ok(serde_json::json!(a_val == b_val))
-             },
-             "ifNode" => {
-                 // 0: condition, 1: trueVal, 2: falseVal
-                 let condition = if !inputs[0].is_empty() { inputs[0][0].as_bool().unwrap_or(false) } else { data[0].as_bool().unwrap_or(false) };
-                 let true_val = if !inputs[1].is_empty() { &inputs[1][0] } else { &data[1] };
-                 let false_val = if !inputs[2].is_empty() { &inputs[2][0] } else { &data[2] };
-                 Ok(if condition { true_val.clone() } else { false_val.clone() })
-             },
-             "outputNode" => {
-                 if !inputs[0].is_empty() { Ok(inputs[0][0].clone()) } else { Ok(SerdeValue::Null) }
-             },
-             _ => Ok(SerdeValue::Null)
-        }
+         } else {
+             Err(JsValue::from_str(&format!("Logic not found for node type: {}", node_type)))
+         }
     }
 }

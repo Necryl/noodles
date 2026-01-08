@@ -33,42 +33,53 @@
 
 	const engine = graphStore;
 
-	// Apply the custom type to the nodes array
-	const { initialNodes, initialEdges } = (() => {
-		const node1 = graphStore.addNode('stringNode', getNextID(), [
-			nodeDefs.stringNode.data[0].defaultValue
-		] as unknown as GNode['data']);
-		const node2 = graphStore.addNode('outputNode', getNextID());
-		graphStore.addEdge(
-			{ id: node1.id, outputIndex: 0, type: 'string' },
-			{ id: node2.id, inputIndex: 0, type: 'any' }
-		);
-		return {
-			initialNodes: [
-				{
-					id: node1.id,
-					type: 'node',
-					position: { x: 0, y: 0 },
-					data: node1 as unknown as Record<string, unknown>
-				},
-				{
-					id: node2.id,
-					type: 'node',
-					position: { x: 400, y: 100 },
-					data: node2 as unknown as Record<string, unknown>
-				}
-			],
-			initialEdges: [
-				{
-					id: 'e1-2',
-					source: node1.id,
-					target: node2.id,
-					sourceHandle: `output-0`,
-					targetHandle: `input-0`
-				} as Edge
-			]
-		};
-	})();
+	// Static initial state for UI, logic synced in onMount
+	const initialNode1Id = getNextID();
+	const initialNode2Id = getNextID();
+
+	// We defines nodes for UI immediately to prevent flash?
+	// Actually better to wait for WASM or just init UI and sync WASM.
+	// Let's go with: init UI, then add to WASM in onMount.
+
+	// Initial Data for Node 1
+	const n1Data = [nodeDefs.stringNode.data[0].defaultValue];
+
+	const initialNodes: Node[] = [
+		{
+			id: initialNode1Id,
+			type: 'node',
+			position: { x: 0, y: 0 },
+			data: {
+				id: initialNode1Id,
+				type: 'stringNode',
+				data: n1Data,
+				inputs: [[]],
+				outputs: [[]]
+			} as any
+		},
+		{
+			id: initialNode2Id,
+			type: 'node',
+			position: { x: 400, y: 100 },
+			data: {
+				id: initialNode2Id,
+				type: 'outputNode',
+				data: [],
+				inputs: [[]],
+				outputs: []
+			} as any
+		}
+	];
+
+	const initialEdges: Edge[] = [
+		{
+			id: 'e1-2',
+			source: initialNode1Id,
+			target: initialNode2Id,
+			sourceHandle: 'output-0',
+			targetHandle: 'input-0'
+		}
+	];
 
 	let nodes = $state.raw<Node[]>(initialNodes);
 	let edges = $state.raw<Edge[]>(initialEdges);
@@ -76,21 +87,32 @@
 	import * as wasm from '$lib/wasm/wasm_lib';
 
 	onMount(() => {
-		// Initialize WASM
-		// wasm.init(); // If init is required, but with vite-plugin-wasm it usually handles it or returns a promise if using async.
-		// Actually with vite-plugin-wasm top-level await support, we might just use it.
-		// Let's print the result of the add function.
-		try {
-			console.log('WASM add(10, 20):', wasm.add(10, 20));
-		} catch (e) {
-			console.error('WASM error:', e);
-		}
+		(async () => {
+			// WASM is initialized via graphStore
+			// Sync initial nodes to WASM logic
+			// We know IDs and types from initialNodes
+
+			await graphStore.addNode({
+				id: initialNodes[0].id,
+				type: 'stringNode',
+				data: (initialNodes[0].data as any).data,
+				inputs: [[]],
+				outputs: [[]]
+			});
+			await graphStore.addNode({
+				id: initialNodes[1].id,
+				type: 'outputNode',
+				data: [],
+				inputs: [[]],
+				outputs: []
+			});
+			await graphStore.addEdge(initialNodes[0].id, 0, initialNodes[1].id, 0);
+		})();
 
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key && e.key.toLowerCase() === 'a' && e.shiftKey) {
 				// open at last known pointer coords (no viewport-inside check)
 				e.preventDefault();
-				openMenu($lastMouseX, $lastMouseY);
 			}
 		};
 		const onMouseMove = (e: MouseEvent) => {
@@ -107,71 +129,64 @@
 		};
 	});
 
-	function addNode(nodeType: string) {
+	async function addNode(nodeType: string) {
 		const id = getNextID();
 		const flowPos = svelteFlowInstance.screenToFlowPosition({ x: $menuX, y: $menuY });
 		if (!flowPos) return;
-		const dataNode: GNode = engine.addNode(nodeType as NodeDef, id);
+
+		const newNodeData: GNode = {
+			id,
+			type: nodeType as keyof typeof nodeDefs,
+			data: (nodeDefs[nodeType as keyof typeof nodeDefs].data?.map((d) => d.defaultValue) ||
+				[]) as any,
+			inputs: Array.from(
+				{ length: nodeDefs[nodeType as keyof typeof nodeDefs].io.inputs.length },
+				() => []
+			),
+			outputs: Array.from(
+				{ length: nodeDefs[nodeType as keyof typeof nodeDefs].io.outputs.length },
+				() => []
+			)
+		};
+
+		await engine.addNode(newNodeData);
+
 		const newNode: Node = {
 			id,
 			type: 'node',
 			position: { x: flowPos.x, y: flowPos.y },
-			data: dataNode as unknown as Record<string, unknown>,
+			data: newNodeData as unknown as Record<string, unknown>,
 			origin: [0.5, 0.5]
 		};
 		nodes = [...nodes, newNode];
 	}
 
-	const deleteHandler: OnDelete = ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
-		// console.log('deleting nodes:', nodes);
-		// console.log('deleting edges:', edges);
-		edges.forEach((edge) => {
-			const sourceNode = $graphStore.graph.get(edge.source);
-			const targetNode = $graphStore.graph.get(edge.target);
-			if (!sourceNode || !targetNode) return;
-
-			const source: EdgeSource = {
-				id: edge.source,
-				outputIndex: Number(edge.sourceHandle?.split('-').pop()),
-				type: ''
-			};
-			source.type = nodeDefs[sourceNode.type].io.outputs[source.outputIndex].type;
-
-			const target: EdgeTarget = {
-				id: edge.target,
-				inputIndex: Number(edge.targetHandle?.split('-').pop()),
-				type: ''
-			};
-			target.type = nodeDefs[targetNode.type].io.inputs[target.inputIndex].type;
-
-			engine.removeEdge(source, target);
-		});
-		nodes.forEach((node) => {
-			engine.removeNode(node.id);
-		});
+	const deleteHandler: OnDelete = async ({
+		nodes: deletedNodes,
+		edges: deletedEdges
+	}: {
+		nodes: Node[];
+		edges: Edge[];
+	}) => {
+		for (const edge of deletedEdges) {
+			const sourceOutputIndex = Number(edge.sourceHandle?.split('-').pop());
+			const targetInputIndex = Number(edge.targetHandle?.split('-').pop());
+			await engine.removeEdge(edge.source, sourceOutputIndex, edge.target, targetInputIndex);
+		}
+		for (const node of deletedNodes) {
+			await engine.removeNode(node.id);
+		}
 	};
 
-	const connectionHandler: OnConnect = (connection) => {
-		// console.log('connecting:', connection);
+	const connectionHandler: OnConnect = async (connection) => {
 		const sourceNode = $graphStore.graph.get(connection.source);
 		const targetNode = $graphStore.graph.get(connection.target);
 		if (!sourceNode || !targetNode) return;
 
-		const source: EdgeSource = {
-			id: connection.source,
-			outputIndex: Number(connection.sourceHandle?.split('-').pop()),
-			type: ''
-		};
-		source.type = nodeDefs[sourceNode.type].io.outputs[source.outputIndex].type;
+		const sourceOutputIndex = Number(connection.sourceHandle?.split('-').pop());
+		const targetInputIndex = Number(connection.targetHandle?.split('-').pop());
 
-		const target: EdgeTarget = {
-			id: connection.target,
-			inputIndex: Number(connection.targetHandle?.split('-').pop()),
-			type: ''
-		};
-		target.type = nodeDefs[targetNode.type].io.inputs[target.inputIndex].type;
-		// console.log('connecting source:', source, 'target:', target);
-		engine.addEdge(source, target);
+		await engine.addEdge(connection.source, sourceOutputIndex, connection.target, targetInputIndex);
 	};
 
 	const checkConnectionValidity: IsValidConnection = (connection) => {

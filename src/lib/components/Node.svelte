@@ -18,35 +18,6 @@
 	const nodeDef = nodeDefs[initialNode.type];
 	const edges = useEdges();
 
-	const status = $derived(() => {
-		// console.log('starting status calculation for:', id);
-		let status = { node: 'pending', inputs: [] as boolean[] };
-		const values = nodeValue() as NodeValueCache | undefined;
-		const inputTypes = nodeDef.io.inputs.map((socket) => socket.type);
-		// console.log('values:', values);
-		if (
-			!(!values || !values.inputs || (values.inputs.length === 0 && values.outputs.length === 0))
-		) {
-			if (
-				!values.inputs.reduce((verdict: boolean, curr: any, index: number) => {
-					let result =
-						(typeof curr === inputTypes[index] || inputTypes[index] === 'any') && verdict;
-					status.inputs[index] = result;
-					// console.log(`STATUS ${id} [Input index: ${index}]: `, result);
-					return result;
-				}, true)
-			) {
-				status.node = 'error';
-			} else if (values !== undefined) {
-				status.node = 'calculated';
-			}
-		}
-		// console.log('status calculated for', id, ':', status, '<<');
-		return status;
-	});
-
-	const nodeValue = $derived(() => $graphStore.cache.get(id));
-
 	// --- 2. REACTIVE STATE ---
 
 	const isInputConnected = $derived(() => {
@@ -63,6 +34,43 @@
 		return connectedMap;
 	});
 
+	const status = $derived(() => {
+		console.log(`[Status Calc] Node ${id} cache:`, $graphStore.cache.get(id));
+		let status = { node: 'pending', inputs: [] as boolean[] };
+		const values = nodeValue() as NodeValueCache | undefined;
+		const inputTypes = nodeDef.io.inputs.map((socket) => socket.type);
+		const connected = isInputConnected();
+
+		if (
+			!(!values || !values.inputs || (values.inputs.length === 0 && values.outputs.length === 0))
+		) {
+			if (
+				!values.inputs.reduce((verdict: boolean, curr: any, index: number) => {
+					// Skip validation if input is not connected (rely on plugin/default)
+					if (!connected.get(index)) {
+						status.inputs[index] = true;
+						return verdict;
+					}
+
+					let result =
+						(typeof curr === inputTypes[index] || inputTypes[index] === 'any') && verdict;
+					status.inputs[index] = result;
+					return result;
+				}, true)
+			) {
+				status.node = 'error';
+			} else if (values !== undefined) {
+				status.node = 'calculated';
+			}
+		}
+		// console.log('status calculated for', id, ':', status, '<<');
+		return status;
+	});
+
+	const nodeValue = $derived(() => $graphStore.cache.get(id));
+
+	// --- 3. ACTIONS ---
+
 	// --- 3. ACTIONS ---
 
 	function updateNodeValue(index: number, value: any) {
@@ -78,7 +86,7 @@
 		newArr[index] = value;
 		newData = newArr;
 
-		graphStore.updateNodeData(node.id, newData as NodeData);
+		graphStore.updateNodeData(node.id, newData as any);
 	}
 </script>
 
@@ -153,7 +161,7 @@
 						{/if}
 					{:else if input.ui.type === 'show'}
 						{@const inputValue = nValue?.inputs?.[i]}
-						{#if nStatus.node !== 'error' && nStatus.inputs[i] !== false}
+						{#if nStatus.inputs[i] !== false}
 							<div class="input-value">{inputValue ?? ' '}</div>
 						{:else}
 							<NodeError

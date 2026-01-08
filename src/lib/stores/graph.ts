@@ -1,152 +1,205 @@
-// src/lib/stores/graph.ts
+import { writable, get } from 'svelte/store';
+import type { GraphEngine } from '$lib/wasm/wasm_lib';
+import { nodeDefs, type GNode } from '$lib/graph/nodeDefs';
 
-import { writable } from 'svelte/store';
-import * as graphLogic from '$lib/graph/graph';
-import {
-	createNode,
-	type GNode,
-	type NodeDef,
-	type NodeData,
-	type EdgeSource,
-	type EdgeTarget
-} from '$lib/graph/nodeDefs';
-
-const latestID = writable(0);
-
-export function getNextID() {
-	let id: number;
-	latestID.update((n) => {
-		id = n + 1;
-		return id;
-	});
-	return `N${id!}`;
+export interface NodeData {
+    [key: string]: any;
 }
 
-// Define the shape of our state
 export interface GraphState {
-	graph: Map<string, GNode>;
-	cache: Map<string, unknown>;
+    graph: Map<string, GNode>;
+    cache: Map<string, any>;
+    engine: GraphEngine | null;
 }
 
-export interface GraphStore {
-	subscribe: (
-		run: (value: GraphState) => void,
-		invalidate?: (value?: GraphState) => void
-	) => () => void;
-	addNode: (type: NodeDef, id: string, data?: NodeData) => GNode;
-	removeNode: (id: string) => void;
-	updateNodeData: (id: string, newData: NodeData) => void;
-	addEdge: (source: EdgeSource, target: EdgeTarget) => void;
-	removeEdge: (source: EdgeSource, target: EdgeTarget) => void;
-	evaluateNode: (id: string) => unknown;
+function createGraphStore() {
+    const { subscribe, set, update } = writable<GraphState>({
+        graph: new Map(),
+        cache: new Map(),
+        engine: null
+    });
+
+    let wasm: typeof import('$lib/wasm/wasm_lib') | null = null;
+    let engine: GraphEngine | null = null;
+
+    const initPromise = (async () => {
+        if (typeof window !== 'undefined') {
+            wasm = await import('$lib/wasm/wasm_lib');
+            // Safely check for default init function if it's exported
+            if ((wasm as any).default && typeof (wasm as any).default === 'function') {
+                await (wasm as any).default();
+            }
+            engine = new wasm.GraphEngine();
+            update(state => ({ ...state, engine }));
+            console.log("GraphEngine initialized");
+        }
+    })();
+
+    return {
+        subscribe,
+        init: () => initPromise,
+
+        addNode: async (node: GNode) => {
+            await initPromise;
+            if (!engine || !wasm) return;
+
+            try {
+                // Add to WASM
+                engine.add_node(node.id, node.type, node.data);
+
+                // Update local state for UI
+                update(state => {
+                    const newGraph = new Map(state.graph);
+                    newGraph.set(node.id, node);
+                    return { ...state, graph: newGraph };
+                });
+            } catch (e) {
+                console.error("Failed to add node:", e);
+            }
+        },
+
+        removeNode: async (id: string) => {
+            await initPromise;
+            if (!engine) return;
+
+            try {
+                const dirty = engine.remove_node(id) as unknown as string[];
+                update(state => {
+                    const newGraph = new Map(state.graph);
+                    newGraph.delete(id);
+                    // Also remove edges from neighbors in UI state to match WASM cleanup
+                    for (const [nid, node] of newGraph) {
+                        node.inputs = node.inputs.map(socket => socket.filter(c => c.id !== id));
+                        node.outputs = node.outputs.map(socket => socket.filter(c => c.id !== id));
+                    }
+
+                    const newCache = new Map(state.cache);
+                    if (Array.isArray(dirty)) {
+                        dirty.forEach(d => newCache.delete(d));
+                    }
+
+                    return { ...state, graph: newGraph, cache: newCache };
+                });
+            } catch (e) {
+                console.error("Failed to remove node:", e);
+            }
+        },
+
+        addEdge: async (sourceId: string, sourceOutputIndex: number, targetId: string, targetInputIndex: number) => {
+            await initPromise;
+            if (!engine) return;
+
+            try {
+                const dirty = engine.add_edge(sourceId, sourceOutputIndex, targetId, targetInputIndex) as unknown as string[];
+                update(state => {
+                    const newGraph = new Map(state.graph);
+                    const source = newGraph.get(sourceId);
+                    const target = newGraph.get(targetId);
+                    if (source && target) {
+                        source.outputs[sourceOutputIndex] = [...source.outputs[sourceOutputIndex], { id: targetId, inputIndex: targetInputIndex, type: 'any' }];
+                        target.inputs[targetInputIndex] = [...target.inputs[targetInputIndex], { id: sourceId, outputIndex: sourceOutputIndex, type: 'any' }];
+                    }
+
+                    const newCache = new Map(state.cache);
+                    if (Array.isArray(dirty)) {
+                        dirty.forEach(d => newCache.delete(d));
+                    }
+
+                    return { ...state, graph: newGraph, cache: newCache };
+                });
+            } catch (e) {
+                console.error("Failed to add edge:", e);
+                throw e;
+            }
+        },
+
+        removeEdge: async (sourceId: string, sourceOutputIndex: number, targetId: string, targetInputIndex: number) => {
+            await initPromise;
+            if (!engine) return;
+
+            try {
+                const dirty = engine.remove_edge(sourceId, sourceOutputIndex, targetId, targetInputIndex) as unknown as string[];
+                update(state => {
+                    const newGraph = new Map(state.graph);
+                    const source = newGraph.get(sourceId);
+                    const target = newGraph.get(targetId);
+                    if (source && target) {
+                        source.outputs[sourceOutputIndex] = source.outputs[sourceOutputIndex].filter(c => !(c.id === targetId && c.inputIndex === targetInputIndex));
+                        target.inputs[targetInputIndex] = target.inputs[targetInputIndex].filter(c => !(c.id === sourceId && c.outputIndex === sourceOutputIndex));
+                    }
+
+                    const newCache = new Map(state.cache);
+                    if (Array.isArray(dirty)) {
+                        dirty.forEach(d => newCache.delete(d));
+                    }
+
+                    return { ...state, graph: newGraph, cache: newCache };
+                });
+            } catch (e) {
+                console.error("Failed to remove edge:", e);
+            }
+        },
+
+        updateNodeData: async (id: string, data: NodeData) => {
+            await initPromise;
+            if (!engine) return;
+
+            try {
+                const dirty = engine.update_node_data(id, data) as unknown as string[];
+                update(state => {
+                    const newGraph = new Map(state.graph);
+                    const node = newGraph.get(id);
+                    if (node) {
+                        node.data = data as any;
+                    }
+
+                    const newCache = new Map(state.cache);
+                    if (Array.isArray(dirty)) {
+                        dirty.forEach(d => newCache.delete(d));
+                    }
+
+                    return { ...state, graph: newGraph, cache: newCache };
+                });
+            } catch (e) {
+                console.error("Failed to update node data:", e);
+            }
+        },
+
+        evaluateNode: async (id: string) => {
+            await initPromise;
+            if (!engine) return null;
+            try {
+                const resultMap = engine.evaluate_node(id) as unknown as Record<string, any>;
+                console.log(`Evaluated node ${id}, trace:`, resultMap);
+
+                const result = resultMap[id]; // The target node result is in the map
+
+                update(state => {
+                    const newCache = new Map(state.cache);
+
+                    // Update all computed nodes in the map
+                    if (resultMap instanceof Map) {
+                        for (const [key, value] of resultMap.entries()) {
+                            newCache.set(key, value);
+                        }
+                    } else {
+                        // Fallback for Object
+                        for (const [key, value] of Object.entries(resultMap)) {
+                            newCache.set(key, value);
+                        }
+                    }
+
+                    return { ...state, cache: newCache };
+                });
+
+                return result;
+            } catch (e) {
+                console.error("Evaluation failed:", e);
+                return null;
+            }
+        }
+    };
 }
 
-// The function that creates our custom store
-function createGraphStore(): GraphStore {
-	// 1. Create an internal, writable store with our default state.
-	const { subscribe, update } = writable<GraphState>({
-		graph: new Map(),
-		cache: new Map()
-	});
-
-	// 2. Return the public interface for our store.
-	return {
-		// Make it a readable store by exposing subscribe.
-		subscribe,
-
-		// --- Actions ---
-
-		/**
-		 * Creates and adds a new node to the graph.
-		 */
-		addNode: (type: NodeDef, id: string, data?: NodeData) => {
-			const newNode = createNode(type, id, data);
-			update((state) => {
-				const newGraph = graphLogic.addNode(state.graph, newNode);
-				// No cache change is needed when adding a disconnected node.
-				return { graph: newGraph, cache: state.cache };
-			});
-			return newNode;
-		},
-
-		/**
-		 * Removes a node and its connections from the graph.
-		 */
-		removeNode: (id: string) => {
-			update((state) => {
-				const nodeToDelete = state.graph.get(id);
-
-				// If the node doesn't exist, do nothing.
-				if (!nodeToDelete) {
-					return state;
-				}
-
-				const { newGraph, dirtyNodes } = graphLogic.removeNode(state.graph, id);
-
-				let newCache = state.cache;
-				dirtyNodes.forEach((dirtyNodeId) => {
-					newCache = graphLogic.markDirty(newGraph, newCache, dirtyNodeId);
-				});
-
-				newCache.delete(id);
-
-				return { graph: newGraph, cache: newCache };
-			});
-		},
-		/**
-		 * Updates the data payload of a specific node.
-		 */
-		updateNodeData: (id: string, newData: NodeData) => {
-			update((state) => {
-				const newGraph = graphLogic.updateNodeData(state.graph, id, newData);
-				const newCache = graphLogic.markDirty(newGraph, state.cache, id);
-				// console.log(`Updated node data for node id: ${id}`);
-				// console.log('Updated node data, new graph:', newGraph, 'new cache:', newCache);
-				return { graph: newGraph, cache: newCache };
-			});
-		},
-
-		/**
-		 * Adds an edge between two nodes.
-		 */
-		addEdge: (source: EdgeSource, target: EdgeTarget) => {
-			update((state) => {
-				const newGraph = graphLogic.addEdge(state.graph, source, target);
-				const newCache = graphLogic.markDirty(newGraph, state.cache, target.id);
-				return { graph: newGraph, cache: newCache };
-			});
-		},
-
-		/**
-		 * Removes an edge between two nodes.
-		 */
-		removeEdge: (source: EdgeSource, target: EdgeTarget) => {
-			update((state) => {
-				const newGraph = graphLogic.removeEdge(state.graph, source, target);
-				const newCache = graphLogic.markDirty(newGraph, state.cache, target.id);
-				return { graph: newGraph, cache: newCache };
-			});
-		},
-
-		/**
-		 * Evaluates a node and updates the cache. Returns the computed value.
-		 */
-		evaluateNode: (id: string): unknown => {
-			// console.log(`evaluating node id: ${id}`);
-			let finalValue: unknown;
-			update((state) => {
-				// This pure function returns both the value and the new cache state.
-				const { value, newCache } = graphLogic.evaluateNode(state.graph, state.cache, id);
-				finalValue = value;
-				// We only need to update the cache. The graph structure is unchanged.
-				// console.log(`evaluated node id: ${id}, value: ${JSON.stringify(value)}`);
-				// console.log('new cache:', newCache);
-				return { graph: state.graph, cache: newCache };
-			});
-			return finalValue;
-		}
-	};
-}
-
-// 3. Export a single instance of the store for the app to use.
 export const graphStore = createGraphStore();
+export const getNextID = () => crypto.randomUUID().slice(0, 8);

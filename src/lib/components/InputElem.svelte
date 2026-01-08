@@ -11,8 +11,9 @@
 			case 'string':
 				return String(value);
 			case 'any':
+				if (typeof value === 'string' && value.trim() === '') return value;
 				const numtest = Number(value);
-				return numtest ? numtest : value;
+				return !isNaN(numtest) ? numtest : value;
 		}
 	}
 	let booleanValue = $state(defaultValue as boolean);

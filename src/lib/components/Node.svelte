@@ -35,7 +35,7 @@
 	});
 
 	const status = $derived(() => {
-		console.log(`[Status Calc] Node ${id} cache:`, $graphStore.cache.get(id));
+		// console.log(`[Status Calc] Node ${id} cache:`, $graphStore.cache.get(id));
 		let status = { node: 'pending', inputs: [] as boolean[] };
 		const values = nodeValue() as NodeValueCache | undefined;
 		const inputTypes = nodeDef.io.inputs.map((socket) => socket.type);

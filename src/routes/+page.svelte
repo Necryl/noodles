@@ -186,7 +186,59 @@
 		const sourceOutputIndex = Number(connection.sourceHandle?.split('-').pop());
 		const targetInputIndex = Number(connection.targetHandle?.split('-').pop());
 
-		await engine.addEdge(connection.source, sourceOutputIndex, connection.target, targetInputIndex);
+		// Check for replacement (if target socket is full)
+		// Check for replacement (if target socket is full)
+		const targetSocketDef = nodeDefs[targetNode.type].io.inputs[targetInputIndex];
+
+		if (targetNode.inputs[targetInputIndex].length >= targetSocketDef.maxConnections) {
+			// Only replace if maxConnections is 1
+			if (targetSocketDef.maxConnections === 1) {
+				console.log('Replacing existing connection on socket', targetInputIndex);
+				const existingEdges = edges.filter(
+					(e) => e.target === connection.target && e.targetHandle === connection.targetHandle
+				);
+
+				for (const edge of existingEdges) {
+					const sIdx = Number(edge.sourceHandle?.split('-').pop());
+					const tIdx = Number(edge.targetHandle?.split('-').pop());
+					try {
+						await engine.removeEdge(edge.source, sIdx, edge.target, tIdx);
+					} catch (err) {
+						console.error('Failed to remove existing edge during replacement:', err);
+					}
+				}
+
+				edges = edges.filter(
+					(e) => e.target !== connection.target || e.targetHandle !== connection.targetHandle
+				);
+			} else {
+				console.warn('Target socket full and maxConnections > 1. Connection logic prevented.');
+				return; // Prevent adding extra edge if logic violation
+			}
+		}
+
+		try {
+			await engine.addEdge(
+				connection.source,
+				sourceOutputIndex,
+				connection.target,
+				targetInputIndex
+			);
+
+			// Explicitly add the new visual edge
+			const newEdge: Edge = {
+				id: `e-${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}`, // Consistent ID
+				source: connection.source,
+				target: connection.target,
+				sourceHandle: connection.sourceHandle,
+				targetHandle: connection.targetHandle,
+				type: 'default'
+			};
+			// Append to edges (after filtering happened above)
+			edges = [...edges, newEdge];
+		} catch (err) {
+			console.error('Failed to add new edge:', err);
+		}
 	};
 
 	const checkConnectionValidity: IsValidConnection = (connection) => {
@@ -211,15 +263,22 @@
 		const sourceType = nodeDefs[source.type].io.outputs[sourceSocket.index].type;
 		const targetType = nodeDefs[target.type].io.inputs[targetSocket.index].type;
 
-		if (
-			source.outputs[sourceSocket.index].length < sourceMax &&
-			target.inputs[targetSocket.index].length < targetMax &&
-			(sourceType === targetType || sourceType === 'any' || targetType === 'any')
-		) {
-			return true;
-		} else {
+		// Type check
+		if (!(sourceType === targetType || sourceType === 'any' || targetType === 'any')) {
 			return false;
 		}
+
+		// Capacity check
+		// Source
+		if (source.outputs[sourceSocket.index].length >= sourceMax) return false;
+
+		// Target - Allow overflow only if replacement is supported (max=1)
+		if (target.inputs[targetSocket.index].length >= targetMax) {
+			if (targetMax === 1) return true;
+			return false;
+		}
+
+		return true;
 	};
 
 	let colorMode: ColorMode = $state('system');
